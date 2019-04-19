@@ -9,3 +9,9 @@ class Read_Only_Register(Exception):
 
 class Write_Only_Register(Exception):
     pass
+
+class Bit_OverFlow(Exception):
+    pass
+
+class Negative_Bit_value(Exception):
+    pass

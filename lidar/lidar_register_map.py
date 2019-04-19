@@ -1,4 +1,4 @@
-from tools.register_map import RegisterMap
+from tools.register_map import RegisterMap, VirtualRegisterMap
 
 ACQ_COMMAND         = "ACQ_COMMAND"
 STATUS              = "STATUS"
@@ -55,6 +55,7 @@ WRITE_ONLY = 1
 READ_WRITE = 2
 
 lidar_rw_registers = RegisterMap()
+
 lidar_rw_registers[ACQ_COMMAND     ] = WRITE_ONLY
 lidar_rw_registers[STATUS          ] = READ_ONLY
 lidar_rw_registers[SIG_COUNT_VAL   ] = READ_WRITE
@@ -78,3 +79,14 @@ lidar_rw_registers[HEALTH_STATUS   ] = READ_ONLY
 lidar_rw_registers[CORR_DATA       ] = READ_ONLY
 lidar_rw_registers[CORR_DATA_SIGN  ] = READ_ONLY
 lidar_rw_registers[POWER_CONTROL   ] = READ_WRITE
+
+lidar_register_defaults = VirtualRegisterMap(value_bits=8)
+
+lidar_rw_registers[SIG_COUNT_VAL   ] = 0xff
+lidar_rw_registers[ACQ_CONFIG_REG  ] = 0x08
+lidar_rw_registers[REF_COUNT_VAL   ] = 0x03
+lidar_rw_registers[UNIT_ID_HIGH    ] = 0xee
+lidar_rw_registers[UNIT_ID_LOW     ] = 0xee
+lidar_rw_registers[THRESHOLD_BYPASS] = 0x00
+lidar_rw_registers[I2C_CONFIG      ] = 0x00
+lidar_rw_registers[POWER_CONTROL   ] = 0x00

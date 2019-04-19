@@ -2,6 +2,7 @@ import smbus
 import time
 from lidar import lidar_register_map
 from tools import custom_exceptions
+from tools.register_map import BitRegisterMap
 
 LIDAR_I2C_ADDRESS = 0x62
 
@@ -93,3 +94,29 @@ class Lidar(LidarControl):
 class VirtualLidar(LidarControl):
     def __init__(self):
         LidarControl.__init__(self)
+        self.registers = BitRegisterMap(address_bits=8, data_bits=8)
+
+    def connect(self, debug_error=False):
+        if debug_error:
+            return -1
+        else:
+            return 0
+
+    def writeToRegister(self, register, value, debug_error=False):
+        if debug_error:
+            return -1
+        else:
+            self._registerWriteable(register=register)
+            self.registers[register] = value
+            return 0
+
+    def readFromRegister(self, register, debug_error=False):
+        if debug_error:
+            return -1
+        else:
+            self._registerReadable(register=register)
+            try:
+                return self.registers[register]
+            except KeyError:
+                self.registers[register] = 0
+                return self.registers[register]
