@@ -139,6 +139,23 @@ class LidarArdunio(LidarControl):
         if data < 0:
             raise custom_exceptions.Negative_Bit_value
 
+    def _sendCommand(self, command, data0=0x00, data1=0x00):
+        # Check the inputs and then send the message
+        self._checkIfByteSized(command)
+        self._checkIfByteSized(data0)
+        self._checkIfByteSized(data1)
+        message = bytearray([command, data0, data1, 0xff])
+        self.serial_comms.write(message)
+        # Wait for the ack
+        ack = self.serial_comms.read(1)
+        if(ack is NO_ERROR):
+            # ack was good so now read the message
+            self.serial_comms.read(1)
+        else:
+            pass
+
+
+
 
 # Virtual Lidar interface used for testing
 class LidarVirtual(LidarControl):
