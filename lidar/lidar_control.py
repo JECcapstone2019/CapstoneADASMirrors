@@ -1,10 +1,13 @@
 import smbus
 import time
+import serial
 from lidar import lidar_register_map
 from tools import custom_exceptions
 from tools.register_map import BitRegisterMap
 
 LIDAR_I2C_ADDRESS = 0x62
+ERROR = -1
+NO_ERROR = 0
 
 class LidarControl:
     def __init__(self, *args, **kwargs):
@@ -32,6 +35,9 @@ class LidarControl:
     def connect(self, *args, **kwargs):
         raise NotImplementedError
 
+    def disconnect(self, *args, **kwargs):
+        raise NotImplementedError
+
     def writeToRegister(self, *args, **kwargs):
         raise NotImplementedError
 
@@ -45,6 +51,7 @@ class LidarControl:
         raise NotImplementedError
 
 
+# Used to interface with the lidar if it is directly connected to the cpu
 class Lidar(LidarControl):
     def __init__(self):
         LidarControl.__init__(self)
@@ -90,29 +97,77 @@ class Lidar(LidarControl):
         vel = self.readFromRegister(self.velReadReg)
         return self._convertSignedInt(vel)
 
+ARDUNIO_PORT = ''
+ARDUINO_BAUD_RATE = 9600
 
-class VirtualLidar(LidarControl):
+# Used to interface with the lidar if it is connected through a Arduino
+class LidarArdunio(LidarControl):
+    def __init__(self):
+        LidarControl.__init__(self)
+        self.serial_comms = None
+        self.read_cmd_byte = bytes(0x00)
+        self.write_cmd_byte = bytes(0x01)
+
+    def connect(self):
+        self.serial_comms = serial.Serial(ARDUNIO_PORT, ARDUINO_BAUD_RATE)  # Establish the connection on a specific port
+        self.serial_comms.open()
+        return self.serial_comms.isOpen()
+
+    def disconnect(self, *args, **kwargs):
+        if not(self.serial_comms is None):
+            self.serial_comms.close()
+            self.serial_comms = None
+
+    def readFromRegister(self, address):
+        self._checkIfByteSized(data=address)
+        self.serial_comms.write(self.read_cmd_byte)
+        self.serial_comms.write(address)
+        return self.serial_comms.read()
+
+    def writeToRegister(self, address, data, *args, **kwargs):
+        self._checkIfByteSized(data=address)
+        self._checkIfByteSized(data=data)
+        self.serial_comms.write(self.write_cmd_byte)
+        self.serial_comms.write(address)
+        self.serial_comms.write(data)
+        return self.serial_comms.read()
+
+    def _checkIfByteSized(self, data):
+        if data > 255:
+            raise custom_exceptions.Bit_OverFlow
+        if data < 0:
+            raise custom_exceptions.Negative_Bit_value
+
+
+# Virtual Lidar interface used for testing
+class LidarVirtual(LidarControl):
     def __init__(self):
         LidarControl.__init__(self)
         self.registers = BitRegisterMap(address_bits=8, data_bits=8)
 
     def connect(self, debug_error=False):
         if debug_error:
-            return -1
+            return ERROR
         else:
-            return 0
+            return NO_ERROR
+
+    def disconnect(self, debug_error=False):
+        if debug_error:
+            return ERROR
+        else:
+            return NO_ERROR
 
     def writeToRegister(self, register, value, debug_error=False):
         if debug_error:
-            return -1
+            return ERROR
         else:
             self._registerWriteable(register=register)
             self.registers[register] = value
-            return 0
+            return NO_ERROR
 
     def readFromRegister(self, register, debug_error=False):
         if debug_error:
-            return -1
+            return ERROR
         else:
             self._registerReadable(register=register)
             try:

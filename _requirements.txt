@@ -1,2 +1,4 @@
 PyQt5==5.12.1
 PyQt5-sip==4.19.15
+pyrealsense2==2.20.0.721
+pyserial==3.4
