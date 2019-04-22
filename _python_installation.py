@@ -22,7 +22,7 @@ def getRequirementsList(path_to_requirements):
 
 if __name__ == '__main__':
     install_success = True
-    with open(os.path.join(FOLDER_PATH, PATH_TO_INSTALL_LOG), 'wb') as logFile:
+    with open(os.path.join(FOLDER_PATH, PATH_TO_INSTALL_LOG), 'w') as logFile:
         # first check if the OS is supported
         platform = sys.platform
         logFile.write("%s is supported %s\n" % (platform, str(OS_SUPPORTED)))

@@ -15,3 +15,6 @@ class Bit_OverFlow(Exception):
 
 class Negative_Bit_value(Exception):
     pass
+
+class Missing_Program_Parameters(Exception):
+    pass

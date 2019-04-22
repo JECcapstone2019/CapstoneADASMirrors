@@ -9,6 +9,7 @@ LIDAR_I2C_ADDRESS = 0x62
 ERROR = -1
 NO_ERROR = 0
 
+# Base control class
 class LidarControl:
     def __init__(self, *args, **kwargs):
         # Grab all the register maps

@@ -1,6 +1,6 @@
 import pyrealsense2 as rs
 
-class RealsenseCameraControl():
+class RealsenseCameraControl:
     def __init__(self):
         pass
 
@@ -34,12 +34,13 @@ class RealsenseCamera(RealsenseCameraControl):
         self.profile = None
 
 
-pipe = rs.pipeline()
-profile = pipe.start()
-try:
-  for i in range(0, 100):
-    frames = pipe.wait_for_frames()
-    for f in frames:
-      print(f.profile)
-finally:
-    pipe.stop()
+if __name__ == '__main__':
+    pipe = rs.pipeline()
+    profile = pipe.start()
+    try:
+      for i in range(0, 100):
+        frames = pipe.wait_for_frames()
+        for f in frames:
+          print(f.profile)
+    finally:
+        pipe.stop()
