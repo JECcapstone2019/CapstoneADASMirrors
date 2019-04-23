@@ -1,0 +1,56 @@
+So a couple things quick
+
+Formatting
+    lets try to keep things consistent
+
+    Classes - Each word begins with a capital
+    ex.
+    LidarControl,  Lidar,  RealSenseCamera
+
+    Functions - first word is not capitalized, inputs keep this format too
+    ex.
+    run(), getFrame(), convertByteArray(byteArray), convertString(string)
+
+    Variables - Two different types, in scope and global scope
+
+    In Scope variables are used inside of a function or the main program
+    These should be all lower case and words separated by underscores _
+    Also try to include the type in the name when it is easy, applicable or important
+
+    some short forms
+    int - integer
+    str - string
+    b - boolean
+    np - numpy array
+    arr - array
+    di - dictionary
+    f - float
+
+    ex
+    getFrame()
+        try:
+            temp_image = queue.get()
+        except:
+            pass
+
+    int_distance_measurement, byte_data_out, b_car_detected, di_incoming_params
+
+    Global scope variables should generally be unchanging constants used by the entire file
+    These variables are all capitals separated by underscores _
+    The fewer of these the safer but they are useful sometimes
+
+    ex.
+    LIDAR_I2C_ADDR
+
+Python Control
+    The _python_installation file allows you to check if you have your virtual environment set up correctly. It will
+    ensure that the python version matches, it is installed in the correct place, and that all the modules are installed
+    correctly
+
+    Keeping the _requirements.txt file up to date is important so we don't end up diverging and using random
+    incompatible modules. Please ensure the requirements file is updated each time a new module is installed.
+    The command
+    pip freeze
+    allows you to check what modules you have installed, from this you can manually grab your new added module, or
+    pip freeze > _requirements.txt
+    can be used in order to update the requirements file automatically.
