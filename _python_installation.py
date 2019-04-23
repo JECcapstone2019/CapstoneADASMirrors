@@ -12,6 +12,7 @@ FOLDER_PATH = os.path.split(os.path.realpath(__file__))[0]
 OS_SUPPORTED = ['win32', 'win64']
 PYTHON_VERSION_REQUIRED = "3.6.8"
 PATH_TO_REQUIREMENTS = '_requirements.txt'
+INSTALL_LOG_FOLDER = 'install_logs'
 PATH_TO_INSTALL_LOG = 'install_log'
 LOG_FILE_TYPE = '.txt'
 PATH_TO_VIRTENV = "virtenv\Scripts\python.exe"
@@ -34,8 +35,11 @@ def getInstalledPackages():
 
 if __name__ == '__main__':
     install_success = True
+    log_folder_path = os.path.join(FOLDER_PATH, INSTALL_LOG_FOLDER)
     log_file_path = "%s_%s_%s" % (PATH_TO_INSTALL_LOG, time_stamping.getTimeStampedString(), LOG_FILE_TYPE)
-    with open(os.path.join(FOLDER_PATH, log_file_path), 'w') as logFile:
+    if not os.path.exists(log_folder_path):
+        os.mkdir(log_folder_path)
+    with open(os.path.join(log_folder_path, log_file_path), 'w') as logFile:
         # first check if the OS is supported
         os_type = sys.platform
         logFile.write("%s is supported %s\n" % (os_type, str(OS_SUPPORTED)))
@@ -70,4 +74,4 @@ if __name__ == '__main__':
         if install_success:
             logFile.write("Wow! We did it! - Install Success")
         else:
-            logFile.write("Something went wrong... Read the rest of this file - Install FAILED")
+            logFile.write("Something went wrong... Read the rest of this file\nInstall FAILED")
