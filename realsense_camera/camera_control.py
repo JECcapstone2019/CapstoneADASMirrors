@@ -1,6 +1,27 @@
 import pyrealsense2 as rs
 import numpy as np
-from tools import custom_exceptions
+from tools import custom_exceptions, time_stamping
+import time
+import os
+import cv2
+
+DEPTH = 'DEPTH'
+COLOUR = 'COLOUR'
+INFRARED = 'INFRARED'
+
+TYPE = 0
+FORMAT = 1
+
+STREAMS = {}
+STREAMS[DEPTH] = {}
+STREAMS[DEPTH][TYPE] = rs.stream.depth
+STREAMS[DEPTH][FORMAT] = rs.format.z16
+STREAMS[COLOUR] = {}
+STREAMS[COLOUR][TYPE] = rs.stream.color
+STREAMS[COLOUR][FORMAT] = rs.format.bgr8
+STREAMS[INFRARED] = {}
+STREAMS[INFRARED][TYPE] = rs.stream.infrared
+STREAMS[INFRARED][FORMAT] = rs.format.y8
 
 class RealsenseCameraControl:
     def __init__(self):
@@ -12,32 +33,13 @@ class RealsenseCameraControl:
     def disconnect(self, *args, **kwargs):
         raise NotImplementedError
 
-    def getFrame(self, *args, **kwargs):
+    def getFrames(self, *args, **kwargs):
         raise NotImplementedError
 
 class VirtualRealsenseCamera(RealsenseCameraControl):
     pass
 
 class D435RealSenseCamera(RealsenseCameraControl):
-
-    DEPTH = 'DEPTH'
-    COLOUR = 'COLOUR'
-    INFRARED = 'INFRARED'
-
-    TYPE = 0
-    FORMAT = 1
-
-    STREAMS = {}
-    STREAMS[DEPTH] = {}
-    STREAMS[DEPTH][TYPE] = rs.stream.depth
-    STREAMS[DEPTH][FORMAT] = rs.format.z16
-    STREAMS[COLOUR] = {}
-    STREAMS[COLOUR][TYPE] = rs.stream.color
-    STREAMS[COLOUR][FORMAT] = rs.format.bgr8
-    STREAMS[INFRARED] = {}
-    STREAMS[INFRARED][TYPE] = rs.stream.infrared
-    STREAMS[INFRARED][FORMAT] = rs.format.y8
-
     def __init__(self, tup_frameSize, i_frameRate):
         RealsenseCameraControl.__init__(self)
 
@@ -65,7 +67,8 @@ class D435RealSenseCamera(RealsenseCameraControl):
         self.running = True
 
     def stop(self):
-        self.pipe.stop()
+        if self.pipe != None:
+            self.pipe.stop()
         self.running = False
 
     def disconnect(self):
@@ -76,9 +79,9 @@ class D435RealSenseCamera(RealsenseCameraControl):
 
     def addStream(self, str_type):
         if self.connected and not self.running:
-            stream_type = self.STREAMS[str_type][self.TYPE]
-            stream_format = self.STREAMS[str_type][self.FORMAT]
-            if str_type in self.STREAMS:
+            stream_type = STREAMS[str_type][TYPE]
+            stream_format = STREAMS[str_type][FORMAT]
+            if str_type in STREAMS:
                 self.config.enable_stream(stream_type, *self.frame_size, stream_format, self.frame_rate)
             else:
                 raise custom_exceptions.Stream_Not_Implemented
@@ -94,15 +97,34 @@ class D435RealSenseCamera(RealsenseCameraControl):
     def getFrames(self):
         return self.pipe.wait_for_frames()
 
+# Quick function to grab some images and save them as numpies
+def saveXImages(xImages, folderPath=''):
+    path = folderPath
+    if path is '':
+        path = time_stamping.createTimeStampedFolder(pathToFolder=os.getcwd(), str_Prefix='saved_images')
+    camera = D435RealSenseCamera((480, 640), 30)
+    camera.disconnect()
+    camera.connect()
+    camera.addStream(str_type=COLOUR)
+    camera.start()
+    for image in range(xImages):
+        frame = camera.getFrames()
+        time.sleep(1)
+        color_frame = frame.get_color_frame()
+        np_color_image = np.asanyarray(color_frame.get_data())
+        image_path = os.path.join(path, time_stamping.getTimeStampedString() + '_image.npy')
+        np.save(image_path, np_color_image)
+    camera.disconnect()
+    return path
 
 if __name__ == '__main__':
-    # pipe = rs.pipeline()
-    # profile = pipe.start()
-    # try:
-    #   for i in range(0, 100):
-    #     frames = pipe.wait_for_frames()
-    #     for f in frames:
-    #       print(f.profile)
-    # finally:
-    #     pipe.stop()
-    pass
+    camera = D435RealSenseCamera((480, 640), 30)
+    camera.disconnect()
+    camera.connect()
+    camera.addStream(str_type=COLOUR)
+    camera.start()
+    frame = camera.getFrames()
+    camera.disconnect()
+    color_frame = frame.get_color_frame()
+    np_color_image = np.asanyarray(color_frame.get_data())
+    time.sleep(1)
