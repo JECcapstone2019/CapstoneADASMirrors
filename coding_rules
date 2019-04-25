@@ -18,13 +18,14 @@ Formatting
     Also try to include the type in the name when it is easy, applicable or important
 
     some short forms
-    int - integer
+    i - integer
     str - string
     b - boolean
     np - numpy array
     arr - array
     di - dictionary
     f - float
+    tup - tuple
 
     ex
     getFrame()

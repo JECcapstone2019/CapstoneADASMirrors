@@ -18,3 +18,9 @@ class Negative_Bit_value(Exception):
 
 class Missing_Program_Parameters(Exception):
     pass
+
+class Camera_Not_Connected(Exception):
+    pass
+
+class Stream_Not_Implemented(Exception):
+    pass
