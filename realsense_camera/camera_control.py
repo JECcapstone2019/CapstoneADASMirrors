@@ -1,9 +1,9 @@
 import pyrealsense2 as rs
 import numpy as np
-from tools import custom_exceptions, time_stamping
+from tools import custom_exceptions, time_stamping, image_tools
 import time
 import os
-import cv2
+
 
 DEPTH = 'DEPTH'
 COLOUR = 'COLOUR'
@@ -97,6 +97,13 @@ class D435RealSenseCamera(RealsenseCameraControl):
     def getFrames(self):
         return self.pipe.wait_for_frames()
 
+    def getArrFrames(self):
+        frames = self.pipe.wait_for_frames()
+        arr_frames = []
+        for frame in frames:
+            arr_frames.append(frame)
+        return arr_frames
+
 # Quick function to grab some images and save them as numpies
 def saveXImages(xImages, folderPath=''):
     path = folderPath
@@ -108,14 +115,33 @@ def saveXImages(xImages, folderPath=''):
     camera.addStream(str_type=COLOUR)
     camera.start()
     for image in range(xImages):
-        frame = camera.getFrames()
         time.sleep(1)
-        color_frame = frame.get_color_frame()
-        np_color_image = np.asanyarray(color_frame.get_data())
-        image_path = os.path.join(path, time_stamping.getTimeStampedString() + '_image.npy')
-        np.save(image_path, np_color_image)
+        frames = camera.getArrFrames()
+        for frame in frames:
+            color_frame = frame.get_color_frame()
+            np_color_image = np.asanyarray(color_frame.get_data())
+            image_path = os.path.join(path, time_stamping.getTimeStampedString() + '_image.npy')
+            np.save(image_path, np_color_image)
     camera.disconnect()
     return path
+
+def quickViewer():
+    camera = D435RealSenseCamera((480, 640), 30)
+    camera.disconnect()
+    camera.connect()
+    camera.addStream(str_type=COLOUR)
+    camera.start()
+    try:
+        while(True):
+            frames = camera.getFrames()
+            colour_images = frames.get_color_frame()
+            np_color_image = np.asanyarray(colour_images.get_data())
+            image_tools.viewNumpyColorImage(np_color_image)
+    except KeyboardInterrupt:
+        camera.disconnect()
+        return
+
+
 
 if __name__ == '__main__':
     camera = D435RealSenseCamera((480, 640), 30)
