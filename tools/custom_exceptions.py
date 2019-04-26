@@ -1,3 +1,6 @@
+# Miscellaneous ########################################################################################################
+########################################################################################################################
+
 class NonStringKey_RegisterMap(Exception):
     pass
 
@@ -19,8 +22,14 @@ class Negative_Bit_value(Exception):
 class Missing_Program_Parameters(Exception):
     pass
 
+# Camera ###############################################################################################################
+########################################################################################################################
+
 class Camera_Not_Connected(Exception):
     pass
 
 class Stream_Not_Implemented(Exception):
+    pass
+
+class Unable_To_Configure_While_Camera_Running(Exception):
     pass

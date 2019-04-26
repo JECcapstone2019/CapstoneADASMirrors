@@ -27,6 +27,7 @@ if __name__ == '__main__':
 
     # We must grab the options manually
     else:
+        # Determine type of lidar control
         if parser.Lidar is "VLidar":
             lidar_used
         elif parser.Lidar is "RLidar":
@@ -34,6 +35,7 @@ if __name__ == '__main__':
         elif parser.Lidar is "ALidar":
             lidar_used
 
+        # Determine type of camera control
         if parser.Camera is "VCamera":
             camera_used
         elif parser.Camera is "RCamera":
