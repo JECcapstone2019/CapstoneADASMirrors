@@ -14,6 +14,34 @@ class RegisterMap(dict):
             dict.__setitem__(self, key, value)
             dict.__setitem__(self, value, key)
 
+class Register():
+    SUB_VALUES_BIT_START = 0
+    SUB_VALUES_BIT_END = 1
+
+    def __init__(self, str_name, i_address, dict_subValues, i_bitSize=8):
+        self.name = str_name
+        self.address = i_address
+        self.sub_values = dict_subValues
+        self.bit_size = i_bitSize
+        self.max_value = pow(2, i_bitSize) - 1
+        self.value = 0
+
+    def update(self, value):
+        if value > self.max_value:
+            raise custom_exceptions.Bit_OverFlow
+        elif value < 0:
+            raise custom_exceptions.Negative_Bit_value
+        self.value = value
+
+    def getSubValue(self, str_subValue):
+        bit_start = self.sub_values[str_subValue][self.SUB_VALUES_BIT_START]
+        bit_end = self.sub_values[str_subValue][self.SUB_VALUES_BIT_START]
+        return self._getBitSubsetFromValue(bitStart=bit_start, bitEnd=bit_end)
+
+    def _getBitSubsetFromValue(self, bitStart, bitEnd):
+        mask_value = pow(2, bitEnd - bitStart) - 1
+        return (self.value >> bitStart) & mask_value
+
 
 # Same as RegisterMap but sets a random value instead of key errors
 class VirtualRegisterMap(RegisterMap):
@@ -28,7 +56,6 @@ class VirtualRegisterMap(RegisterMap):
             value = random.randint(0, self.max_value)
             self.__setitem__(item, value)
             return value
-
 
 
 class BitRegisterMap(dict):

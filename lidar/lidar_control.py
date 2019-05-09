@@ -5,9 +5,6 @@ from lidar import lidar_register_map
 from tools import custom_exceptions
 from tools.register_map import BitRegisterMap
 
-LIDAR_I2C_ADDRESS = 0x62
-ERROR = -1
-NO_ERROR = 0
 
 # Base control class
 class LidarControl:
@@ -98,62 +95,11 @@ class Lidar(LidarControl):
         vel = self.readFromRegister(self.velReadReg)
         return self._convertSignedInt(vel)
 
-ARDUNIO_PORT = ''
-ARDUINO_BAUD_RATE = 9600
 
 # Used to interface with the lidar if it is connected through a Arduino
 class LidarArdunio(LidarControl):
-    def __init__(self):
+    def __init__(self, arduinoControl):
         LidarControl.__init__(self)
-        self.serial_comms = None
-        self.read_cmd_byte = bytes(0x00)
-        self.write_cmd_byte = bytes(0x01)
-
-    def connect(self):
-        self.serial_comms = serial.Serial(ARDUNIO_PORT, ARDUINO_BAUD_RATE)  # Establish the connection on a specific port
-        self.serial_comms.open()
-        return self.serial_comms.isOpen()
-
-    def disconnect(self, *args, **kwargs):
-        if not(self.serial_comms is None):
-            self.serial_comms.close()
-            self.serial_comms = None
-
-    def readFromRegister(self, address):
-        self._checkIfByteSized(data=address)
-        self.serial_comms.write(self.read_cmd_byte)
-        self.serial_comms.write(address)
-        return self.serial_comms.read()
-
-    def writeToRegister(self, address, data, *args, **kwargs):
-        self._checkIfByteSized(data=address)
-        self._checkIfByteSized(data=data)
-        self.serial_comms.write(self.write_cmd_byte)
-        self.serial_comms.write(address)
-        self.serial_comms.write(data)
-        return self.serial_comms.read()
-
-    def _checkIfByteSized(self, data):
-        if data > 255:
-            raise custom_exceptions.Bit_OverFlow
-        if data < 0:
-            raise custom_exceptions.Negative_Bit_value
-
-    def _sendCommand(self, command, data0=0x00, data1=0x00):
-        # Check the inputs and then send the message
-        self._checkIfByteSized(command)
-        self._checkIfByteSized(data0)
-        self._checkIfByteSized(data1)
-        message = bytearray([command, data0, data1, 0xff])
-        self.serial_comms.write(message)
-        # Wait for the ack
-        ack = self.serial_comms.read(1)
-        if(ack is NO_ERROR):
-            # ack was good so now read the message
-            self.serial_comms.read(1)
-        else:
-            pass
-
 
 
 
