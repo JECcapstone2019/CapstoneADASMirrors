@@ -33,3 +33,27 @@ class Stream_Not_Implemented(Exception):
 
 class Unable_To_Configure_While_Camera_Running(Exception):
     pass
+
+# Arduino Communication ################################################################################################
+########################################################################################################################
+
+class Packet_byte_Error(Exception):
+    def __init__(self, byteReceived, byteDefault):
+        self.byte_received = byteReceived
+        self.byte_default = byteDefault
+        # TODO: Add a custom message to this
+
+class Packet_Header_Error(Packet_byte_Error):
+    pass
+
+class Packet_Footer_Error(Packet_byte_Error):
+    pass
+
+class Packet_Data_Error(Packet_byte_Error):
+    pass
+
+class Serial_Communication_Ack_Timeout(Exception):
+    pass
+
+class Serial_Communication_Completed_Timeout(Exception):
+    pass
