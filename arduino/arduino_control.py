@@ -3,6 +3,37 @@ from tools import custom_exceptions
 import time
 from arduino import arduino_defs as defs
 
+class SerialMsg:
+    def __init__(self, cmd_id=0, header_id=defs.HEADER_ID, footer_id=defs.FOOTER_ID, *dataBytes):
+        self.cmd_id = self._checkIfByteSized(cmd_id)
+        self.footer_id = self._checkIfByteSized(footer_id)
+        self.header_id = self._checkIfByteSized(header_id)
+        self.data = []
+        for dataByte in dataBytes:
+            self.data += self._checkIfByteSized(dataByte)
+        self.size = self._checkIfByteSized(len(self.data) + 1)
+
+    def getBytes(self):
+        return bytearray([self.header, self.cmd_id, self.size, self.data, self.footer])
+
+    def setFromByteArray(self, byteArray):
+        raise NotImplementedError
+
+    def _checkIfByteSized(self, data):
+        if data > 255:
+            raise custom_exceptions.Bit_OverFlow
+        if data < 0:
+            raise custom_exceptions.Negative_Bit_value
+        return data
+
+    def _convertReturnedData(self):
+        # Check to see if this data needs to be converted/checked for size
+        try:
+            conv_func = defs.DATA_CONV[self.cmd_id]
+        except KeyError:
+            return self.data
+        return conv_func(self.data)
+
 
 # Class that controls the arduino by sending commands and getting back data via Serial connection
 class ArduinoControl:
@@ -30,25 +61,13 @@ class ArduinoControl:
             completed_msg = self._waitForMessage()
             if completed_msg is defs.EMPTY:
                 raise custom_exceptions.Serial_Communication_Completed_Timeout()
-            return self._convertReturnedData(id=completed_msg, data=completed_msg[defs.MSG_RDY:-1])
         else:
             raise custom_exceptions.Serial_Communication_Completed_Timeout()
 
-    def _checkIfByteSized(self, data):
-        if data > 255:
-            raise custom_exceptions.Bit_OverFlow
-        if data < 0:
-            raise custom_exceptions.Negative_Bit_value
-
     # Message Format [Header, commandID, Size,    Data Packets,      Footer]
     # ex.           [0x7f,    0x01,     0x05, 0xff, 0xff, 0x01, 0x01, 0xe7]
-    def _buildMessage(self, i_commandID, *dataPackets):
-        info_byte = len(dataPackets) + 1
-        self._checkIfByteSized(i_commandID)
-        self._checkIfByteSized(info_byte)
-        for packet in dataPackets:
-            self._checkIfByteSized(packet)
-        return bytearray([defs.HEADER_ID, i_commandID, info_byte, *dataPackets, defs.FOOTER_ID])
+    def _buildMessage(self, i_commandID, *dataBytes):
+        return SerialMsg(cmd_id=i_commandID, *dataBytes).getBytes()
 
     def _waitForMessage(self):
         # initialize the message and header to empty
@@ -92,11 +111,3 @@ class ArduinoControl:
             header = self.serial_comms.read(defs.MSG_RDY)
         else:
             return header
-
-    def _convertReturnedData(self, id, data):
-        # Check to see if this data needs to be converted/checked for size
-        try:
-            conv_func = defs.DATA_CONV[id]
-        except KeyError:
-            return data
-        return conv_func(data)
