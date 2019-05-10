@@ -55,3 +55,7 @@ Python Control
     allows you to check what modules you have installed, from this you can manually grab your new added module, or
     pip freeze > _requirements.txt
     can be used in order to update the requirements file automatically.
+
+Exceptions
+    Try to keep all possible errors as custom exceptions in the tools/custom_exceptions.py file. These should be named
+    as can be seen in the file (Ex. class Custom_Byte_Error(Exception)
