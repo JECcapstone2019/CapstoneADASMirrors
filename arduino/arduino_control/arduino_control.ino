@@ -3,21 +3,27 @@
 
 const int BAUD_RATE = 9600;
 const int REFRESH_DELAY = 5; // in ms
+const int TIMEOUT = 50; // in ms
+const int MSG_READY = 3 // This will contain the msg header, cmdID, and size
 
 // Communication with Python constants
-const byte TERMINATOR = 0xa5;
+const byte MSG_HEADER = 0x7f
+const byte MSG_FOOTER = 0xa5;
+
+const int MSG_HEADER_IND = 0;
+const int MSG_CMD_IND = 1;
+const int MSG_SIZE_IND = 2;
+
 const byte MSG_ACK = 0xf0;
 const byte MSG_COMPLETED = 0x0f;
 const byte MSG_ERROR = 0xaf;
-const int MSG_SIZE = 4;
 
 // Command Definitions
 const byte CMD_READ_REG = 0x00;
 const byte CMD_WRITE_REG = 0x01;
 
 // Parse the message to see what it wants us to do
-byte* parseMessage(byte message[MSG_SIZE]){
-    byte cmd_id = message[0];
+byte* parseMessage(int cmd_id, byte *message_data){
     byte *completed_msg;
     if(cmd_id == CMD_READ_REG){
     }
@@ -41,31 +47,43 @@ void setup() {
 }
 
 void loop() {
-    byte message[MSG_SIZE];
+    byte *message;
     // Check if there is a full instruction set available
-    if(Serial.available() == MSG_SIZE){
-        // Received a full message - grab the data and send an ack
-        Serial.readBytes(message, MSG_SIZE);
-        if(message[MSG_SIZE - 1] != TERMINATOR){
+    int bytes_available = Serial.available()
+    if(bytes_available >= MSG_READY){
+        // Received a message - lets check its parameters and see what we need
+        Serial.readBytes(message, MSG_READY);
+        if(message[MSG_HEADER_IND] != MSG_HEADER){
             // Invalid termination, something is wrong with this message
             Serial.write(MSG_ERROR);
+            // Clear the buffer
+            emptySerialBuffer();
         }
         else{
-            // Received a good message, now do what the message says and send the completed message
-            Serial.write(MSG_ACK);
-            byte *completed_msg = parseMessage(message);
-            Serial.write(*completed_msg);
+            // Check how many bytes we need for a full message
+            byte *message_data;
+            int msg_size = message[MSG_SIZE_IND];
+            // Timeout at 50ms
+            for(int delay_wait = 0; delay_wait < (TIMEOUT/REFRESH_DELAY); delay_wait++;){
+                // check if we have the full message now
+                bytes_available = Serial.available();
+                if(bytes_available == msg_size){
+                    Serial.readBytes(message_data, bytes_available);
+                    int cmd_id = (int) message[MSG_CMD_IND];
+                    Serial.write(MSG_ACK);
+                    byte *completed_msg = parseMessage(cmd_id, message_data);
+                    Serial.write(*completed_msg);
+                    break;
+                    }
+                // Don't have full message yet, wait until timeout
+                else{
+                    delay(REFRESH_DELAY);
+                }
+            }
+            // Clear the buffer
+            emptySerialBuffer();
         }
-
-    }
-    // Check to see if we missed an instruction set - if more than one message lets discard and restart
-    else if(Serial.available() > MSG_SIZE){
-        emptySerialBuffer();
-        serial.print(ERROR_MSG)
     }
     // Wait a bit before checking again
     delay(REFRESH_DELAY);
-
-
-
 }

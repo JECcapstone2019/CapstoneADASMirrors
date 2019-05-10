@@ -11,8 +11,8 @@ class ArduinoControl:
     ERROR = -1
     NO_ERROR = 0
 
-    FOOTER_ID = 0xe7
     HEADER_ID = 0x7F
+    FOOTER_ID = 0xa5
 
     def __init__(self):
         self.serial_comms = None
@@ -44,9 +44,9 @@ class ArduinoControl:
             raise custom_exceptions.Negative_Bit_value
 
     # Message Format [Header, commandID, Size,    Data Packets,      Footer]
-    # ex.           [0x7f,    0x01,     0x04, 0xff, 0xff, 0x01, 0x01, 0xe7]
+    # ex.           [0x7f,    0x01,     0x05, 0xff, 0xff, 0x01, 0x01, 0xe7]
     def _buildMessage(self, i_commandID, *dataPackets):
-        info_byte = len(dataPackets)
+        info_byte = len(dataPackets) + 1
         self._checkIfByteSized(i_commandID)
         self._checkIfByteSized(info_byte)
         for packet in dataPackets:
