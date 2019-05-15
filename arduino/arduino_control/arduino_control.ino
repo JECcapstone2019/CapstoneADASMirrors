@@ -3,15 +3,16 @@
 
 const int BAUD_RATE = 9600;
 const int REFRESH_DELAY = 5; // in ms
-const int TIMEOUT = 50; // in ms
+const int TIMEOUT = 5000; // in ms
+const int LOOP_TIMEOUT = TIMEOUT/REFRESH_DELAY;
 
 // Message Length Definitions
 const int LEN_MSG_HEADER = 3;
 const int LEN_MSG_FOOTER = 1;
 
 // Other Message Definitions
-const byte MSG_HEADER = 0x7f;
-const byte MSG_FOOTER = 0xa5;
+const byte MSG_HEADER = 0x61;
+const byte MSG_FOOTER = 0x62;
 
 const byte EMPTY = 0x00;
 
@@ -44,7 +45,7 @@ const int ACK_TIMEOUT_ERROR = 0x04;
 // Command Functions ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Do nothing and send a completed message with no error
-void cmd_nop(int data_footer_size, byte *message_data_footer){
+void cmd_nop(){
     sendCompletedMessage(COMPLETE_NO_ERROR, 1, EMPTY);
 }
 
@@ -66,9 +67,9 @@ void sendMessage(int cmd_id, int data_size, byte *data){
     byte message[message_length];
     message[0] = MSG_HEADER;
     message[1] = byte(cmd_id);
-    message[2] = data_length;
+    message[2] = byte(data_size + LEN_MSG_FOOTER);
     message[message_length - LEN_MSG_FOOTER] = MSG_FOOTER;
-    for(int data_ind = 0; data_ind < sizeof(data); data_ind++){
+    for(int data_ind = 0; data_ind < data_size; data_ind++){
             message[data_ind + LEN_MSG_HEADER] = data[data_ind];
     }
     Serial.write(message, message_length);
@@ -77,21 +78,20 @@ void sendMessage(int cmd_id, int data_size, byte *data){
 
 // Create an ack message by giving it the code
 void sendAckMessage(int rCode){
-    byte* code = byte(rCode);
+    byte code[1] = {byte(rCode)};
     sendMessage(CMD_ACK, 1, code);
     return;
 }
 
 // Create a completed message by giving it the code and data associated if any
 void sendCompletedMessage(int rCode, int data_length, byte* data){
-    byte code = byte(rCode);
     byte new_data[1 + data_length];
-    new_data[0] = code;
+    new_data[0] = byte(rCode);
     for(int i=0; i< data_length; i++){
         new_data[i + 1] = data[i];
     }
     byte *data_handle = new_data;
-    createMessage(CMD_COMPLETED, data_length, data_handle);
+    sendMessage(CMD_COMPLETED, data_length, data_handle);
     return;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -123,70 +123,76 @@ void loop() {
     byte message_header[LEN_MSG_HEADER];
     // Pointer to the array containing the rest of the data
     byte *message;
-    Serial.write('0');
     int msg_send_length;
-    byte* ack_msg;
-
-    // Check if there is a full instruction set available
-    int bytes_available = Serial.available();
-    if(bytes_available >= LEN_MSG_HEADER){
-        bool msg_completed = false;
-        // Received a message - lets check its parameters and see what we need
-        Serial.readBytes(message_header, LEN_MSG_HEADER);
-        if(message_header[MSG_HEADER_IND] != MSG_HEADER){
-            // Invalid termination, something is wrong with this message
-            Serial.write('1');
-            ack_msg = createAckMessage(ACK_HEADER_ERROR);
-            msg_send_length = LEN_MSG_HEADER + ack_msg[MSG_SIZE_IND];
-            Serial.write(*ack_msg, msg_send_length);
-            // Clear the buffer
-            emptySerialBuffer();
+    int bytes_available = 0;
+    int msg_size = 0;
+    bool data_received = false;
+    bool header_received = false;
+    bool msg_completed = false;
+    bool ack_sent = false;
+    // Timeout at 50ms
+    for(int delay_wait = 0; delay_wait < LOOP_TIMEOUT; delay_wait++){
+        // check how many bytes we have
+        bytes_available = Serial.available();
+        if(bytes_available > 0){
+            data_received = true;
+        }
+        if(header_received == false){
+            if(bytes_available >= LEN_MSG_HEADER){
+                bool msg_completed = false;
+                // Received a message - lets check its parameters and see what we need
+                Serial.readBytes(message_header, LEN_MSG_HEADER);
+                if(message_header[MSG_HEADER_IND] != MSG_HEADER){
+                    // Invalid termination, something is wrong with this message
+                    sendAckMessage(ACK_HEADER_ERROR);
+                    // Clear the buffer
+                    emptySerialBuffer();
+                    ack_sent = true;
+                    break;
+                }
+                else{
+                // Message Header is good
+                // Grab the correct message size and let the loop know we have the header
+                msg_size = (int) message[MSG_SIZE_IND];
+                header_received = true;
+                }
+            }
         }
         else{
-            // Check how many bytes we need for a full message
-            int msg_size = (int) message[MSG_SIZE_IND];
-            // Timeout at 50ms
-            for(int delay_wait = 0; delay_wait < (TIMEOUT/REFRESH_DELAY); delay_wait++){
-                Serial.write('2');
-                // check if we have the full message now
-                bytes_available = Serial.available();
-                if(bytes_available == msg_size){
-                    // All the bytes should be here now
-                    byte message_data_footer[msg_size];
-                    Serial.readBytes(message_data_footer, msg_size);
-                    message &= message_data_footer;
-                    msg_completed = true;
-                    int cmd_id = (int) message_header[MSG_CMD_IND];
-                    // Check the footer
-                    if(message[msg_size - LEN_MSG_FOOTER] == MSG_FOOTER){
-                        // Send an ack back saying we got the message
-                        ack_msg = createAckMessage(ACK_NO_ERROR);
-                        msg_send_length = LEN_MSG_HEADER + ack_msg[MSG_SIZE_IND];
-                        Serial.write(*ack_msg);
-                        // Remove the footer and then ship off the data to the parser
-                        parseMessage(cmd_id, msg_size, message);
-                        break;
-                    }
-                    else{
-                        ack_msg = createAckMessage(ACK_FOOTER_ERROR);
-                        msg_send_length = LEN_MSG_HEADER + ack_msg[MSG_SIZE_IND];
-                        Serial.write(*ack_msg);
-                    }
+            // We have the header, lets see if the rest of the data is here
+            if(bytes_available == msg_size){
+                // All the bytes should be here now
+                byte message_data_footer[msg_size];
+                Serial.readBytes(message_data_footer, msg_size);
+                message = message_data_footer;
+                msg_completed = true;
+                int cmd_id = (int) message_header[MSG_CMD_IND];
+                // Check the footer
+                if(message[msg_size - LEN_MSG_FOOTER] == MSG_FOOTER){
+                    // Send an ack back saying we got the message
+                    sendAckMessage(ACK_NO_ERROR);
+                    // Remove the footer and then ship off the data to the parser
+                    parseMessage(cmd_id, msg_size, message);
+                    break;
                 }
-                // Don't have full message yet, wait until timeout
                 else{
-                    delay(REFRESH_DELAY);
+                    sendAckMessage(ACK_FOOTER_ERROR);
+                    ack_sent = true;
+                    break;
                 }
             }
-            if(msg_completed == false){
-                ack_msg = createAckMessage(ACK_TIMEOUT_ERROR);
-                msg_send_length = LEN_MSG_HEADER + ack_msg[MSG_SIZE_IND];
-                Serial.write(*ack_msg);
+            // Don't have full message yet, wait until timeout
+            else{
+                delay(REFRESH_DELAY);
             }
-            // Clear the buffer
-            emptySerialBuffer();
         }
     }
+    // Timed out without grabbing a full message
+    if(data_received & (msg_completed == false) & (ack_sent == false)){
+        sendAckMessage(ACK_TIMEOUT_ERROR);
+    }
+    // Clear the buffer
+    emptySerialBuffer();
     // Wait a bit before checking again
     delay(REFRESH_DELAY);
 }
