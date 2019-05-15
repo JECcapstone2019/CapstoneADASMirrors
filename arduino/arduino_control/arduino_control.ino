@@ -2,7 +2,7 @@
 #include <String.h>
 
 const int BAUD_RATE = 9600;
-const int REFRESH_DELAY = 5; // in ms
+const int REFRESH_DELAY = 100; // in ms
 const int TIMEOUT = 5000; // in ms
 const int LOOP_TIMEOUT = TIMEOUT/REFRESH_DELAY;
 
@@ -12,9 +12,9 @@ const int LEN_MSG_FOOTER = 1;
 
 // Other Message Definitions
 const byte MSG_HEADER = 0x61;
-const byte MSG_FOOTER = 0x62;
+const byte MSG_FOOTER = 0x63;
 
-const byte EMPTY = 0x00;
+const byte EMPTY[1] = {0x00};
 
 // Message Index Definitions
 const int MSG_HEADER_IND = 0;
@@ -90,8 +90,7 @@ void sendCompletedMessage(int rCode, int data_length, byte* data){
     for(int i=0; i< data_length; i++){
         new_data[i + 1] = data[i];
     }
-    byte *data_handle = new_data;
-    sendMessage(CMD_COMPLETED, data_length, data_handle);
+    sendMessage(CMD_COMPLETED, data_length, new_data);
     return;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -139,7 +138,6 @@ void loop() {
         }
         if(header_received == false){
             if(bytes_available >= LEN_MSG_HEADER){
-                bool msg_completed = false;
                 // Received a message - lets check its parameters and see what we need
                 Serial.readBytes(message_header, LEN_MSG_HEADER);
                 if(message_header[MSG_HEADER_IND] != MSG_HEADER){
@@ -153,7 +151,7 @@ void loop() {
                 else{
                 // Message Header is good
                 // Grab the correct message size and let the loop know we have the header
-                msg_size = (int) message[MSG_SIZE_IND];
+                msg_size = (int) message_header[MSG_SIZE_IND];
                 header_received = true;
                 }
             }
