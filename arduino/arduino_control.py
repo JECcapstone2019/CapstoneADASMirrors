@@ -48,6 +48,7 @@ class ArduinoControl:
         self.serial_comms.timeout = 0.1
         if not self.isConnected():
             self.serial_comms.open()
+        time.sleep(2)
         return self.serial_comms.isOpen()
 
     def disconnect(self):
@@ -62,17 +63,20 @@ class ArduinoControl:
         # Check the inputs and then send the message
         message = self._buildMessage(i_commandID=command, arr_data=arr_data)
         print(message)
-        self.serial_comms.write(message)
+        print(self.serial_comms.write(message))
+        time.sleep(0.1)
+        print(self.serial_comms.in_waiting)
+        print(self.serial_comms.read(5))
         # Wait for the ack
         ack = self._waitForMessage()
+        print(ack)
         if not(ack is defs.EMPTY):
             # Check if ack is ok
-            print(ack)
             self._checkAckMsg(ack_msg=ack)
             # Received ack so now lets check if it is bad or good
             completed_msg = self._waitForMessage()
+            print(completed_msg)
             if not(completed_msg is defs.EMPTY):
-                print(completed_msg)
                 data = self._checkCompletedMsg(completed_msg=completed_msg)
             else:
                 raise custom_exceptions.Serial_Communication_Completed_Timeout()
@@ -148,7 +152,7 @@ class ArduinoControl:
 
 
 if __name__ == '__main__':
-    a_control = ArduinoControl(port='COM4')
+    a_control = ArduinoControl()
     a_control.connect()
     a_control.sendCommand(0x05, [0x00])
     a_control.disconnect()

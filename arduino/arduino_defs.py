@@ -1,7 +1,7 @@
 # Arduino Definitions ##################################################################################################
 ########################################################################################################################
 
-ARDUNIO_PORT = ''
+ARDUNIO_PORT = 'COM4'
 ARDUINO_BAUD_RATE = 9600
 
 TIMEOUT = 5000  # in ms
@@ -23,7 +23,7 @@ IND_FOOTER = -1  # Number of bytes in message header
 EMPTY = []
 
 HEADER_ID = 0x61
-FOOTER_ID = 0x62
+FOOTER_ID = 0x63
 
 # CMD ID's
 ID_COMPLETED = 0x01
