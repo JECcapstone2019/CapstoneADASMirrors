@@ -22,9 +22,9 @@ videoStream = getVideo()
 
 while True:
     # grab new frame
-    result, frame = videoStream.read()
+    bool_result, frame = videoStream.read()
 
-    if result == None: # No more frames
+    if bool_result == None: # No more frames
         break
 
     if roi == None: # initilize roi
@@ -33,8 +33,8 @@ while True:
         print('roi initilize correctly:',test)
         fps = FPS().start()
     else:             # update roi
-        update, box = tracker.update(frame)
-        if update == True:
+        bool_updated, box = tracker.update(frame)
+        if bool_updated == True:
             (x, y, w, h) = [int(i) for i in box] # box holds new roi coordinates
             pt1 = (x,y)
             pt2 = (x+w, y+h)
