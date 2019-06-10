@@ -7,6 +7,7 @@ ARDUINO_BAUD_RATE = 9600
 TIMEOUT = 5000  # in ms
 REFRESH_DELAY = 100  # in ms
 MS_CONV = 0.001
+SEQUENCE_COUNT_MAX = 0xff
 
 # Message definitions ##################################################################################################
 ########################################################################################################################
@@ -16,8 +17,8 @@ LEN_MSG_FOOTER = 1  # Number of bytes in message header
 
 IND_HEADER_ID = 0  # Number of bytes in message header
 IND_CMD_ID = 1  # Number of bytes in message header
-IND_SIZE = 2  # Number of bytes in message header
-IND_CODE = 3  # Number of bytes in message header
+IND_SEQ_COUNT = 1  # Number of bytes in message header
+IND_SIZE = 3  # Number of bytes in message header
 IND_FOOTER = -1  # Number of bytes in message header
 
 EMPTY = []

@@ -43,12 +43,13 @@ class ArduinoControl:
         self.port = port
         self.baud_rate = baudRate
 
+        self.sequence_count = 0
+
     def connect(self):
         self.serial_comms = serial.Serial(self.port, self.baud_rate)  # Establish the connection on a specific port
         self.serial_comms.timeout = 0.1
         if not self.isConnected():
             self.serial_comms.open()
-        time.sleep(2)
         return self.serial_comms.isOpen()
 
     def disconnect(self):
@@ -62,20 +63,19 @@ class ArduinoControl:
     def sendCommand(self, command, arr_data):
         # Check the inputs and then send the message
         message = self._buildMessage(i_commandID=command, arr_data=arr_data)
-        print(message)
-        print(self.serial_comms.write(message))
+        self.serial_comms.write(message)
         time.sleep(0.1)
-        print(self.serial_comms.in_waiting)
-        print(self.serial_comms.read(5))
+        # print(self.serial_comms.in_waiting)
+        # print(self.serial_comms.read(5))
         # Wait for the ack
         ack = self._waitForMessage()
-        print(ack)
+        self._checkSequenceCount(count=ack[defs.IND_SEQ_COUNT])
         if not(ack is defs.EMPTY):
             # Check if ack is ok
             self._checkAckMsg(ack_msg=ack)
             # Received ack so now lets check if it is bad or good
             completed_msg = self._waitForMessage()
-            print(completed_msg)
+            self._checkSequenceCount(count=completed_msg[defs.IND_SEQ_COUNT])
             if not(completed_msg is defs.EMPTY):
                 data = self._checkCompletedMsg(completed_msg=completed_msg)
             else:
@@ -83,8 +83,8 @@ class ArduinoControl:
         else:
             raise custom_exceptions.Serial_Communication_Completed_Timeout()
 
-    # Message Format [Header, commandID, Size,    Data Packets,      Footer]
-    # ex.            [0x7f,    0x01,     0x05, 0xff, 0xff, 0x01, 0x01, 0xe7]
+    # Message Format [Header, commandID, Sequence Count, Size,    Data Packets(4),   Footer]
+    # ex.            [0x7f,    0x01,           0x10,     0x05, 0xff, 0xff, 0x01, 0x01, 0xe7]
     def _buildMessage(self, i_commandID, arr_data):
         self._checkIfByteSized(data=i_commandID)
         for data_byte in arr_data:
@@ -98,8 +98,8 @@ class ArduinoControl:
         header = defs.EMPTY
         for delay in range(int(defs.TIMEOUT/defs.REFRESH_DELAY)):
             # Check to see if we have a msg header
+            header = self._checkForHeader()
             if header is defs.EMPTY:
-                header = self._checkForHeader()
                 # Once we get the header lets check its header
                 if not(header is defs.EMPTY):
                     if not(header[defs.HEADER_ID] is defs.HEADER_ID):
@@ -132,8 +132,7 @@ class ArduinoControl:
         if bytes_waiting >= defs.LEN_MSG_HEADER:
             # Read the header, check if it is correct
             header = self.serial_comms.read(defs.LEN_MSG_HEADER)
-        else:
-            return header
+        return header
 
     def _checkIfByteSized(self, data):
         if data > 255:
@@ -150,9 +149,19 @@ class ArduinoControl:
         if not(completed_msg[defs.IND_CODE] is defs.COMPLETED_NO_ERROR):
             raise Exception
 
+    def _getSequenceCount(self):
+        self.sequence_count = (self.sequence_count + 1) & defs.SEQUENCE_COUNT_MAX
+        return self.sequence_count
+
+    def _checkSequenceCount(self, count):
+        if count != self._getSequenceCount():
+            raise custom_exceptions.Sequence_Count_Error
+
+
 
 if __name__ == '__main__':
     a_control = ArduinoControl()
     a_control.connect()
+    time.sleep(2)
     a_control.sendCommand(0x05, [0x00])
     a_control.disconnect()
