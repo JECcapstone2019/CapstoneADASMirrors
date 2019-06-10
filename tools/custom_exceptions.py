@@ -59,6 +59,6 @@ class Serial_Communication_Completed_Timeout(Exception):
     pass
 
 class Sequence_Count_Error(Exception):
-    def __init__(self, countExpected, CountGiven):
+    def __init__(self, countExpected, countGiven):
         # TODO: Add a custom message for this
         pass

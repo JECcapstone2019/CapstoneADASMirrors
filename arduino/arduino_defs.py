@@ -12,12 +12,12 @@ SEQUENCE_COUNT_MAX = 0xff
 # Message definitions ##################################################################################################
 ########################################################################################################################
 
-LEN_MSG_HEADER = 3  # Number of bytes in message header
+LEN_MSG_HEADER = 4  # Number of bytes in message header
 LEN_MSG_FOOTER = 1  # Number of bytes in message header
 
 IND_HEADER_ID = 0  # Number of bytes in message header
 IND_CMD_ID = 1  # Number of bytes in message header
-IND_SEQ_COUNT = 1  # Number of bytes in message header
+IND_SEQ_COUNT = 2  # Number of bytes in message header
 IND_SIZE = 3  # Number of bytes in message header
 IND_FOOTER = -1  # Number of bytes in message header
 

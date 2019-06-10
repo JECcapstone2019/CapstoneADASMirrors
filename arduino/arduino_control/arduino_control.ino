@@ -5,9 +5,10 @@ const int BAUD_RATE = 9600;
 const int REFRESH_DELAY = 100; // in ms
 const int TIMEOUT = 5000; // in ms
 const int LOOP_TIMEOUT = TIMEOUT/REFRESH_DELAY;
+const int SEQUENCE_COUNT_MAX = 255;
 
 // Message Length Definitions
-const int LEN_MSG_HEADER = 3;
+const int LEN_MSG_HEADER = 4;
 const int LEN_MSG_FOOTER = 1;
 
 // Other Message Definitions
@@ -19,7 +20,10 @@ const byte EMPTY[1] = {0x00};
 // Message Index Definitions
 const int MSG_HEADER_IND = 0;
 const int MSG_CMD_IND = 1;
-const int MSG_SIZE_IND = 2;
+const int MSG_SEQ_IND = 2;
+const int MSG_SIZE_IND = 3;
+
+int SEQUENCE_COUNT = 0;
 
 // Command ID Definitions
 const int CMD_COMPLETED = 0x01;
@@ -61,13 +65,19 @@ void emptySerialBuffer(){
 
 
 // Message Creation Functions //////////////////////////////////////////////////////////////////////////////////////////
+void updateSequenceCount(){
+    SEQUENCE_COUNT = (SEQUENCE_COUNT + 1);
+}
+
 // Create a byte message for sending to the host and put it in the message[] buffer
 void sendMessage(int cmd_id, int data_size, byte *data){
     int message_length = LEN_MSG_HEADER + data_size + LEN_MSG_FOOTER;
     byte message[message_length];
-    message[0] = MSG_HEADER;
-    message[1] = byte(cmd_id);
-    message[2] = byte(data_size + LEN_MSG_FOOTER);
+    updateSequenceCount();
+    message[MSG_HEADER_IND] = MSG_HEADER;
+    message[MSG_CMD_IND] = byte(cmd_id);
+    message[MSG_SEQ_IND] = byte(SEQUENCE_COUNT);
+    message[MSG_SIZE_IND] = byte(data_size + LEN_MSG_FOOTER);
     message[message_length - LEN_MSG_FOOTER] = MSG_FOOTER;
     for(int data_ind = 0; data_ind < data_size; data_ind++){
             message[data_ind + LEN_MSG_HEADER] = data[data_ind];
@@ -152,6 +162,8 @@ void loop() {
                 // Message Header is good
                 // Grab the correct message size and let the loop know we have the header
                 msg_size = (int) message_header[MSG_SIZE_IND];
+                // Grab the messages sequence count as well
+                SEQUENCE_COUNT = (int) message_header[MSG_SEQ_IND];
                 header_received = true;
                 }
             }
