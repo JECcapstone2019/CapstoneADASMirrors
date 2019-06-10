@@ -64,7 +64,6 @@ class ArduinoControl:
     def sendCommand(self, command, arr_data):
         # Check the inputs and then send the message
         message = self._buildMessage(i_commandID=command, arr_data=arr_data)
-        print(message)
         self.serial_comms.write(message)
         time.sleep(0.1)
         # print(self.serial_comms.in_waiting)
@@ -79,7 +78,8 @@ class ArduinoControl:
             completed_msg = self._waitForMessage()
             if not(completed_msg is defs.EMPTY):
                 self._checkSequenceCount(count=completed_msg[defs.IND_SEQ_COUNT])
-                data = self._checkCompletedMsg(completed_msg=completed_msg)
+                self._checkCompletedMsg(completed_msg=completed_msg)
+                return completed_msg
             else:
                 raise custom_exceptions.Serial_Communication_Completed_Timeout()
         else:
@@ -101,14 +101,12 @@ class ArduinoControl:
         # Check to see if we have a msg header
         header, time_remaining = self._waitForBytes(numBytes=defs.LEN_MSG_HEADER, timeout=defs.TIMEOUT)
         # Should have the header lets check it
-        print(header)
         if not(header[defs.IND_HEADER_ID] is defs.HEADER_ID):
             raise custom_exceptions.Packet_Header_Error(byteReceived=header[defs.HEADER_ID],
                                                         byteDefault=defs.HEADER_ID)
         # Now we have the header, lets check to see if we have the full message
         msg_size = header[defs.IND_SIZE]
         message_data, time_remaining = self._waitForBytes(numBytes=msg_size, timeout=time_remaining)
-        print(message_data)
         if not(message_data[defs.IND_FOOTER] is defs.FOOTER_ID):
             raise custom_exceptions.Packet_Footer_Error(byteReceived=message_data[defs.IND_FOOTER],
                                                         byteDefault=defs.FOOTER_ID)
@@ -160,10 +158,12 @@ if __name__ == '__main__':
     a_control = ArduinoControl()
     a_control.connect()
     time.sleep(2)
-    a_control.sendCommand(0x05, [0x00])
-    a_control.sendCommand(0x05, [0x00])
-    a_control.sendCommand(0x05, [0x00])
-    a_control.sendCommand(0x05, [0x00])
-    a_control.sendCommand(0x05, [0x00])
-    a_control.sendCommand(0x05, [0x00])
+    print(a_control.sendCommand(0x05, [0x00]))
+    print(a_control.sendCommand(0x05, [0x00]))
+    print(a_control.sendCommand(0x05, [0x00]))
+    print(a_control.sendCommand(0x05, [0x00]))
+    print(a_control.sendCommand(0x05, [0x00]))
+    print(a_control.sendCommand(0x05, [0x00]))
+    print(a_control.sendCommand(0x05, [0x00]))
+    print(a_control.sendCommand(0x05, [0x00]))
     a_control.disconnect()

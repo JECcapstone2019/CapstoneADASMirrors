@@ -67,6 +67,9 @@ void emptySerialBuffer(){
 // Message Creation Functions //////////////////////////////////////////////////////////////////////////////////////////
 void updateSequenceCount(){
     SEQUENCE_COUNT = (SEQUENCE_COUNT + 1);
+    if(SEQUENCE_COUNT > SEQUENCE_COUNT_MAX){
+        SEQUENCE_COUNT = 0;
+    }
 }
 
 // Create a byte message for sending to the host and put it in the message[] buffer
