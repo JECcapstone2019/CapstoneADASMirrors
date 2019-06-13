@@ -28,6 +28,29 @@ def colorImage(np_image):
     else:
         return False
 
+class virtualStream:
+    def __init__(self, numpyFolder):
+        self.folder = numpyFolder
+        self.np_images = {}
+        count = 0
+        for image in os.listdir(self.folder):
+            if '.npy' in image:
+                path = os.path.join(self.folder, image)
+                self.np_images[count] = path
+                count += 1
+        self.count = 0
+        self.end = len(self.np_images)
+
+    def grabImage(self):
+        image = np.load(self.np_images[self.count])
+        self.count += 1
+        if self.count is self.end:
+            self.reset()
+        return image
+
+    def reset(self):
+        self.count = 0
+
 def saveNumpyAsJpeg(np_image, filePath):
     raise NotImplementedError
 
