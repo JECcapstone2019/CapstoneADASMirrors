@@ -3,6 +3,7 @@ import numpy as np
 from tools import custom_exceptions, time_stamping, image_tools
 import time
 import os
+import cv2
 
 D435_SERIAL_NUM = 831612073489
 
@@ -80,6 +81,7 @@ class RealsenseCameraControl:
 
     def _ovr_addStream(self, streamType, streamFormat):
         raise NotImplementedError
+
 
 class VirtualRealsenseCamera(RealsenseCameraControl):
     def __init__(self, tup_frameSize, i_frameRate):
@@ -189,53 +191,68 @@ class D435RealSenseCamera(RealsenseCameraControl):
 
 
 # Quick function to grab some images and save them as numpies
-def saveXImages(xImages, folderPath=''):
+def saveXImages(xImages, folderPath='', rate=1.0):
     path = folderPath
     if path is '':
         path = time_stamping.createTimeStampedFolder(pathToFolder=os.getcwd(), str_Prefix='saved_images')
-    camera = D435RealSenseCamera((480, 640), 30)
+    camera = D435RealSenseCamera((640, 480), 30)
     camera.disconnect()
     camera.connect()
     camera.addColorStream()
     camera.start()
     for image in range(xImages):
-        time.sleep(1)
-        frames = camera.getArrFrames()
-        for frame in frames:
-            color_frame = frame.get_color_frame()
-            np_color_image = np.asanyarray(color_frame.get_data())
-            image_path = os.path.join(path, time_stamping.getTimeStampedString() + '_image.npy')
-            np.save(image_path, np_color_image)
+        time.sleep(1/rate)
+        frames = camera.getFrames()
+        color_frame = frames.get_color_frame()
+        np_color_image = np.asanyarray(color_frame.get_data())
+        image_path = os.path.join(path, time_stamping.getTimeStampedString() + '_image.npy')
+        np.save(image_path, np_color_image)
     camera.disconnect()
     return path
 
 # Quick Viewing function
-def quickViewer():
-    camera = D435RealSenseCamera((480, 640), 30)
+def quickViewer(save=False):
+    camera = D435RealSenseCamera((640, 480), 30)
     camera.disconnect()
     camera.connect()
-    camera.addStream(str_type=COLOUR)
+    camera.addColorStream()
     camera.start()
-    try:
-        while(True):
-            frames = camera.getFrames()
-            colour_images = frames.get_color_frame()
-            np_color_image = np.asanyarray(colour_images.get_data())
-            image_tools.viewNumpyColorImage(np_color_image)
-    except KeyboardInterrupt:
-        camera.disconnect()
-        return
+    cv2.namedWindow('RealSense', cv2.WINDOW_AUTOSIZE)
+    if save:
+        path = time_stamping.createTimeStampedFolder(pathToFolder=os.getcwd(), str_Prefix='saved_images')
+    count = 0
+    while(True):
+        frames = camera.getFrames()
+        color_frame = frames.get_color_frame()
+        if not color_frame:
+            print("image not found")
+            continue
+
+        # Convert images to numpy arrays
+        color_image = np.asanyarray(color_frame.get_data())
+        if save:
+            image_path = os.path.join(path, 'image_%i.npy' % count)
+            np.save(image_path, color_image)
+            print("Save")
+            count += 1
+
+        # Show images
+        cv2.imshow('RealSense', color_image)
+        cv2.waitKey(33)
 
 
 
 if __name__ == '__main__':
-    camera = D435RealSenseCamera((480, 640), 30)
-    camera.disconnect()
-    camera.connect()
-    camera.start()
-    frame = camera.getFrames()
-    camera.disconnect()
-    color_frame = frame.get_color_frame()
-    np_color_image = np.asanyarray(color_frame.get_data())
-    time.sleep(1)
-    test = rs.context.devices
+    # camera = D435RealSenseCamera((480, 640), 30)
+    # camera.disconnect()
+    # camera.connect()
+    # camera.start()
+    # frame = camera.getFrames()
+    # camera.disconnect()
+    # color_frame = frame.get_color_frame()
+    # np_color_image = np.asanyarray(color_frame.get_data())
+    # time.sleep(1)
+    # test = rs.context.devices
+    ##########33
+    # saveXImages(30, rate=15.0)
+    quickViewer()
