@@ -38,12 +38,12 @@ class VirtualStream:
                 path = os.path.join(self.folder, image)
                 self.np_images[int(re.search(r'\d+', image).group())] = path
         self.count = 0
-        self.end = len(self.np_images)
+        self.end = len(self.np_images) - 1
 
     def grabImage(self):
         image = np.load(self.np_images[self.count])
         self.count += 1
-        if self.count is self.end:
+        if self.count >= self.end:
             self.reset()
         return image
 
