@@ -80,7 +80,7 @@ class ImageProcessor:
         self.tracker = None
 
 class TrackerTesting(ImageProcessor):
-    def __init__(self, folderPath='C:\\Users\\e_q\\Documents\\source_tree\\main_program\\realsense_camera\\saved_images_2019_6_13-17_48_25\\'):
+    def __init__(self, folderPath='/Users/user/Desktop/saved_images_2019_6_13-17_49_52'):
         ImageProcessor.__init__(self, imageQueue=None, dataPipe=None)
         self.virtual_stream = image_tools.VirtualStream(numpyFolder=folderPath)
 
