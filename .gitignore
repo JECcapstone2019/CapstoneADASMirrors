@@ -1,6 +1,3 @@
 # ignore all files and folders starting with
 saved_images*
 install_log*
-
-# ignore specific files or folders
-virtenv/
