@@ -3,6 +3,7 @@ from multiprocessing import Queue, Pipe, Process
 class ImageProcessor:
     def __init__(self, imageQueue, dataPipe):
         self.car_detected = False
+        self.car_tracking = False
         self.car_position = (-1, -1)
 
         self.image_queue = imageQueue
@@ -33,6 +34,16 @@ class ImageProcessor:
                 elif data_from_main is self.car_information_request:
                     self.sendCarInformation()
             # do your image processing here
+            if self.car_detected:
+                self.runTracking()
+            else:
+                self.runCarDetection()
+
+    def runTracking(self):
+        pass
+
+    def runCarDetection(self):
+        pass
 
 
 if __name__ == '__main__':
