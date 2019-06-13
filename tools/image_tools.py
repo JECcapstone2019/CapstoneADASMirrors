@@ -1,6 +1,7 @@
 import numpy as np
 import cv2
 import os
+import re
 
 # returns a dict of filename - .npy as the keys to the images
 def grabNumpyImagesFromFolder(folderPath):
@@ -28,16 +29,14 @@ def colorImage(np_image):
     else:
         return False
 
-class virtualStream:
+class VirtualStream:
     def __init__(self, numpyFolder):
         self.folder = numpyFolder
         self.np_images = {}
-        count = 0
         for image in os.listdir(self.folder):
             if '.npy' in image:
                 path = os.path.join(self.folder, image)
-                self.np_images[count] = path
-                count += 1
+                self.np_images[int(re.search(r'\d+', image).group())] = path
         self.count = 0
         self.end = len(self.np_images)
 
