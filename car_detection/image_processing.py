@@ -5,10 +5,10 @@ from tools import image_tools
 class ImageProcessor:
     def __init__(self, imageQueue, dataPipe):
         self.car_detected = False
-        self.car_tracking = False
         self.roi_updated = 1 # lets us know if there was enough of a change in the roi to display
         self.car_position = [-1, -1, -1, -1]
         self.tracker = None
+        self.frame_name = 'frame'
 
         self.threshold = 0
         self.frame = None
@@ -50,6 +50,7 @@ class ImageProcessor:
         # update tracker
         self.frame = self.getFrame()
         bool_updated, box = self.tracker.update(self.frame)
+        print(bool_updated)
         # check to see if new roi was found
         if bool_updated == True:
             # car was found
@@ -66,41 +67,47 @@ class ImageProcessor:
             self.carLost()
 
     def runCarDetection(self):
-        if self.car_detected:
-            self.tracker = cv2.TrackerKCF_create()
-            self.tracker.init(self.getFrame(), self.car_position)
         pass
 
     # will reset all nessasary flags
     def carLost(self):
         self.car_position = [-1, -1, -1, -1]
         self.car_detected = False
-        self.car_tracking = False
         self.roi_updated = 1
-        self.tracker = None
 
 class TrackerTesting(ImageProcessor):
-    def __init__(self, folderPath='/Users/user/Desktop/saved_images_2019_6_13-17_49_52'):
+    def __init__(self, folderPath='C:\\Users\\e_q\\Documents\\sourcetree\\main_program\\car_detection\\saved_images_2019_6_13-17_49_52\\'):
         ImageProcessor.__init__(self, imageQueue=None, dataPipe=None)
         self.virtual_stream = image_tools.VirtualStream(numpyFolder=folderPath)
 
     def run(self):
-        if self.car_detected:
-            self.runTracking()
-        else:
-            self.runCarDetection()
-        cv2.imshow("frame", self.frame)
+        while True:
+            if self.car_detected:
+                self.runTracking()
+                if self.car_detected:
+                    self.trackingViewer()
+            else:
+                self.runCarDetection()
 
     def getFrame(self):
         return self.virtual_stream.grabImage()
 
     def runCarDetection(self):
         self.frame = self.getFrame()
-        roi = cv2.selectROI("Frame", self.frame, fromCenter=False, showCrosshair=True)
+        roi = cv2.selectROI(self.frame_name, self.frame, fromCenter=False, showCrosshair=True)
         self.tracker = cv2.TrackerKCF_create()
-        cv2.cv2
-        self.tracker = self.tracker.init(self.frame, roi)
+        self.tracker.init(self.frame, roi)
+
+        self.car_position = list(roi)
         self.car_detected = True
+        cv2.destroyAllWindows()
+
+    def trackingViewer(self):
+        pt1 = (self.car_position[0], self.car_position[1])
+        pt2 = (self.car_position[2], self.car_position[3])
+        cv2.rectangle(self.frame, pt1, pt2, (0, 255, 0), 2)
+        cv2.imshow(self.frame_name, self.frame)
+        cv2.waitKey(33)
 
 
 if __name__ == '__main__':
