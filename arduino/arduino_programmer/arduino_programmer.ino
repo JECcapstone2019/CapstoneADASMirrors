@@ -63,7 +63,8 @@ int writeTest(byte myAddress, byte myValue, byte lidarliteAddress)
 
   // A nack means the device is not responding, report the error over serial
   int nackCatcher = Wire.endTransmission();
-  return nackCatcher // 0 means no error
+  delay(2); // 1 ms delay recommended
+  return nackCatcher; // 0 means no error
   /*
   if(nackCatcher != 0)
   {
@@ -73,8 +74,6 @@ int writeTest(byte myAddress, byte myValue, byte lidarliteAddress)
    // Serial.println("> AK_A");
   }
 `*/
-
-  delay(2); // 1 ms delay recommended
 }
 
 
@@ -93,11 +92,11 @@ void cmd_initLIDAR(){
   //delay(5000);
 
   //SETUP DEFAULT CONFIG -
-  checkA = writeTest(0x02,0x80,lidarliteAddress); // Default
-  checkB = writeTest(0x04,0x08,lidarliteAddress); // Default
-  checkC = writeTest(0x1c,0x00,lidarliteAddress); // Default
+  int checkA = writeTest(0x02,0x80,lidarliteAddress); // Default
+  int checkB = writeTest(0x04,0x08,lidarliteAddress); // Default
+  int checkC = writeTest(0x1c,0x00,lidarliteAddress); // Default
 
-  checkError = checkA*checkB*checkC;
+  int checkError = checkA*checkB*checkC;
   if (checkError == 0) {
     sendCompletedMessage(COMPLETE_NO_ERROR, 1, EMPTY);
    }else{
