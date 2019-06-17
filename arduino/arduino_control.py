@@ -155,7 +155,7 @@ class ArduinoControl:
 
 
 if __name__ == '__main__':
-    a_control = ArduinoControl(port='/dev/cu.usbmodem14101')
+    a_control = ArduinoControl(port='/dev/cu.usbmodem14101') #port='/dev/cu.usbmodem14101'
     a_control.connect()
     time.sleep(2)
     #print(a_control.sendCommand(0x05, [0x00]))

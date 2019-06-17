@@ -51,6 +51,29 @@ const int ACK_TIMEOUT_ERROR = 0x04;
 
 // Command Functions ///////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+// Supporting Functions
+
+void writeTest(byte myAddress, byte myValue, byte lidarliteAddress)
+{
+  Wire.beginTransmission((int)lidarliteAddress);
+  Wire.write((int)myAddress); // Set register for write
+  Wire.write((int)myValue); // Write myValue to register
+
+  // A nack means the device is not responding, report the error over serial
+  int nackCatcher = Wire.endTransmission();
+  if(nackCatcher != 0)
+  {
+    Serial.println("> NAK_A");
+  } else
+  {
+   // Serial.println("> AK_A");
+  }
+
+  delay(0.5); // 1 ms delay recommended
+}
+
+
 // Do nothing and send a completed message with no error
 void cmd_nop(){
     sendCompletedMessage(COMPLETE_NO_ERROR, 1, EMPTY);
