@@ -70,7 +70,7 @@ void writeTest(byte myAddress, byte myValue, byte lidarliteAddress)
    // Serial.println("> AK_A");
   }
 
-  delay(0.5); // 1 ms delay recommended
+  delay(2); // 1 ms delay recommended
 }
 
 
@@ -103,7 +103,7 @@ void cmd_readDist(){
 
   byte lidarliteAddress = 0x62; //98 - slave address
   writeTest(0x00,0x04,lidarliteAddress);
-  byte distanceArray[2];
+  byte distanceArray[2] = {0x01, 0xff};
   byte myAddress = 0x8f; // location of distance information **NOTE THERE IS A VELOCITY ONE TOO
   int numOfBytes = 2;
 
@@ -137,7 +137,7 @@ void cmd_readDist(){
         sendCompletedMessage(COMPLETE_NO_LIDAR_READ, 1, EMPTY);
      //Serial.println("> nack");
    }else{
-        sendCompletedMessage(COMPLETE_LIDAR_READ_DATA, 2, distanceArray);
+        sendCompletedMessage(COMPLETE_LIDAR_READ_DATA, 3, distanceArray);
    }
 
 }
@@ -200,11 +200,7 @@ void sendCompletedMessage(int rCode, int data_length, byte* data){
 
 // Parse the message to see what it wants us to do
 void parseMessage(int cmd_id, int data_footer_size, byte *message_data_footer){
-    if(cmd_id == CMD_LIDAR_READ_REG){
-    }
-    else if(cmd_id == CMD_LIDAR_WRITE_REG){
-    }
-    else if(cmd_id == CMD_NOP){
+    if(cmd_id == CMD_NOP){
         cmd_nop();
     }
     else if(cmd_id == CMD_LIDAR_SETUP){

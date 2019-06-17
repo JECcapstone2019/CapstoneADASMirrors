@@ -79,7 +79,7 @@ class ArduinoControl:
             if not(completed_msg is defs.EMPTY):
                 self._checkSequenceCount(count=completed_msg[defs.IND_SEQ_COUNT])
                 self._checkCompletedMsg(completed_msg=completed_msg)
-                return completed_msg
+                return list(completed_msg)
             else:
                 raise custom_exceptions.Serial_Communication_Completed_Timeout()
         else:
@@ -138,7 +138,9 @@ class ArduinoControl:
         return self.sequence_count
 
     def _checkSequenceCount(self, count):
-        if count != self._getSequenceCount():
+        seq = self._getSequenceCount()
+        if count != seq:
+            print("got %i - wanted %i" % (count, seq))
             raise custom_exceptions.Sequence_Count_Error(countExpected=self.sequence_count, countGiven=count)
 
     def _waitForBytes(self, numBytes, timeout):
@@ -152,21 +154,19 @@ class ArduinoControl:
             time.sleep(defs.REFRESH_DELAY * defs.MS_CONV)
         return empty_arr, timeout - delay
 
-
-
 if __name__ == '__main__':
-    a_control = ArduinoControl(port='/dev/cu.usbmodem14101') #port='/dev/cu.usbmodem14101'
+    a_control = ArduinoControl(port='COM7') #port='/dev/cu.usbmodem14101'
     a_control.connect()
     time.sleep(2)
-    #print(a_control.sendCommand(0x05, [0x00]))
+    print(list(a_control.sendCommand(0x05, [0x00])))
 
-    print(a_control.sendCommand(0x03, [0x00]))
+    print(list(a_control.sendCommand(0x03, [0x00])))
     while (100==100):
-        print(a_control.sendCommand(0x04, [0x00]))
+        print(list(a_control.sendCommand(0x04, [0x00])))
 
-    print(a_control.sendCommand(0x05, [0x00]))
-    print(a_control.sendCommand(0x05, [0x00]))
-    print(a_control.sendCommand(0x05, [0x00]))
-    print(a_control.sendCommand(0x05, [0x00]))
-    print(a_control.sendCommand(0x05, [0x00]))
+    print(list(a_control.sendCommand(0x05, [0x00])))
+    print(list(a_control.sendCommand(0x05, [0x00])))
+    print(list(a_control.sendCommand(0x05, [0x00])))
+    print(list(a_control.sendCommand(0x05, [0x00])))
+    print(list(a_control.sendCommand(0x05, [0x00])))
     a_control.disconnect()
