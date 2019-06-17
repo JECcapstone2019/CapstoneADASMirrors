@@ -1,10 +1,10 @@
-import smbus
+#import smbus
 import time
 import serial
 from lidar import lidar_register_map
 from tools import custom_exceptions
 from tools.register_map import BitRegisterMap
-
+from arduino import arduino_defs as defs
 
 # Base control class
 class LidarControl:
@@ -33,7 +33,6 @@ class LidarControl:
     def connect(self, *args, **kwargs):
         raise NotImplementedError
 
-
     def disconnect(self, *args, **kwargs):
         raise NotImplementedError
 
@@ -49,7 +48,25 @@ class LidarControl:
     def getVelocity(self, *args, **kwargs):
         raise NotImplementedError
 
+# Used to interface with the lidar if it is connected through a Arduino
+class LidarArdunio(LidarControl):
+    def __init__(self, arduinoControl):
+        LidarControl.__init__(self)
+        self.testClassVar = arduinoControl #Class variable
 
+    def connect(self): # SETUP DEFAULT CONFGURATION (OVERIDE METHOD)
+        self.testClassVar.sendCommand(self, defs.ID_LIDAR_SETUP, [0x00])
+
+    def getDistance(self):
+        messagereturn = self.testClassVar.sendCommand(self, defs.ID_LIDAR_READ, [0x00])
+        # Shift and add
+        distance = (messagereturn[5] << 8) + messagereturn[6]
+        return distance
+
+
+#
+# FOR LATER
+#
 # Used to interface with the lidar if it is directly connected to the cpu
 class Lidar(LidarControl):
     def __init__(self):
@@ -96,15 +113,6 @@ class Lidar(LidarControl):
         vel = self.readFromRegister(self.velReadReg)
         return self._convertSignedInt(vel)
 
-
-# Used to interface with the lidar if it is connected through a Arduino
-class LidarArdunio(LidarControl):
-    def __init__(self, arduinoControl):
-        LidarControl.__init__(self)
-       // arduinoControl.send
-
-
-
 # Virtual Lidar interface used for testing
 class LidarVirtual(LidarControl):
     def __init__(self):
@@ -141,3 +149,9 @@ class LidarVirtual(LidarControl):
             except KeyError:
                 self.registers[register] = 0
                 return self.registers[register]
+
+
+if __name__ == '__main__':
+    cTest = LidarArdunio()
+    cTest.connect()
+    distanceRet = cTest.getDistance()
