@@ -162,18 +162,13 @@ void emptySerialBuffer(){
 
 
 // Message Creation Functions //////////////////////////////////////////////////////////////////////////////////////////
-void updateSequenceCount(){
-    SEQUENCE_COUNT = (SEQUENCE_COUNT + 1);
-    if(SEQUENCE_COUNT > SEQUENCE_COUNT_MAX){
-        SEQUENCE_COUNT = 0;
-    }
-}
 
 // Create a byte message for sending to the host and put it in the message[] buffer
 void sendMessage(int cmd_id, int data_size, byte *data){
     int message_length = LEN_MSG_HEADER + data_size + LEN_MSG_FOOTER;
     byte message[message_length];
-    updateSequenceCount();
+    SEQUENCE_COUNT = SEQUENCE_COUNT + 1;
+    SEQUENCE_COUNT = SEQUENCE_COUNT & SEQUENCE_COUNT_MAX;
     message[MSG_HEADER_IND] = MSG_HEADER;
     message[MSG_CMD_IND] = byte(cmd_id);
     message[MSG_SEQ_IND] = byte(SEQUENCE_COUNT);
@@ -239,7 +234,6 @@ void loop() {
     int msg_size = 0;
     bool data_received = false;
     bool header_received = false;
-    bool msg_completed = false;
     bool ack_sent = false;
     // Timeout at 50ms
     for(int delay_wait = 0; delay_wait < LOOP_TIMEOUT; delay_wait++){
@@ -277,7 +271,6 @@ void loop() {
                 byte message_data_footer[msg_size];
                 Serial.readBytes(message_data_footer, msg_size);
                 message = message_data_footer;
-                msg_completed = true;
                 int cmd_id = (int) message_header[MSG_CMD_IND];
                 // Check the footer
                 if(message[msg_size - LEN_MSG_FOOTER] == MSG_FOOTER){
@@ -285,6 +278,7 @@ void loop() {
                     sendAckMessage(ACK_NO_ERROR);
                     // Remove the footer and then ship off the data to the parser
                     parseMessage(cmd_id, msg_size, message);
+                    ack_sent = true;
                     break;
                 }
                 else{
@@ -293,14 +287,12 @@ void loop() {
                     break;
                 }
             }
-            // Don't have full message yet, wait until timeout
-            else{
-                delay(REFRESH_DELAY);
-            }
         }
+        // Don't have full message yet, wait until timeout
+        delay(REFRESH_DELAY);
     }
     // Timed out without grabbing a full message
-    if(data_received & (msg_completed == false) & (ack_sent == false)){
+    if(ack_sent == false){
         sendAckMessage(ACK_TIMEOUT_ERROR);
     }
     // Clear the buffer

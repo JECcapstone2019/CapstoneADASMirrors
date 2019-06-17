@@ -64,6 +64,7 @@ class ArduinoControl:
     def sendCommand(self, command, arr_data):
         # Check the inputs and then send the message
         message = self._buildMessage(i_commandID=command, arr_data=arr_data)
+        print("msg - %s" % str(list(message)))
         self.serial_comms.write(message)
         time.sleep(0.1)
         # print(self.serial_comms.in_waiting)
@@ -71,12 +72,15 @@ class ArduinoControl:
         # Wait for the ack
         ack = self._waitForMessage()
         if not(ack is defs.EMPTY):
+            print("ack - %s" % str(list(ack)))
             # Check if ack is ok
             self._checkSequenceCount(count=ack[defs.IND_SEQ_COUNT])
             self._checkAckMsg(ack_msg=ack)
             # Received ack so now lets check if it is bad or good
             completed_msg = self._waitForMessage()
             if not(completed_msg is defs.EMPTY):
+                print("comp - %s" % str(list(completed_msg)))
+                print("")
                 self._checkSequenceCount(count=completed_msg[defs.IND_SEQ_COUNT])
                 self._checkCompletedMsg(completed_msg=completed_msg)
                 return list(completed_msg)
@@ -163,6 +167,7 @@ if __name__ == '__main__':
     print(list(a_control.sendCommand(0x03, [0x00])))
     while (100==100):
         print(list(a_control.sendCommand(0x04, [0x00])))
+        time.sleep(0.01)
 
     print(list(a_control.sendCommand(0x05, [0x00])))
     print(list(a_control.sendCommand(0x05, [0x00])))
