@@ -33,6 +33,7 @@ class LidarControl:
     def connect(self, *args, **kwargs):
         raise NotImplementedError
 
+
     def disconnect(self, *args, **kwargs):
         raise NotImplementedError
 
@@ -100,6 +101,7 @@ class Lidar(LidarControl):
 class LidarArdunio(LidarControl):
     def __init__(self, arduinoControl):
         LidarControl.__init__(self)
+        arduinoControl.send
 
 
 

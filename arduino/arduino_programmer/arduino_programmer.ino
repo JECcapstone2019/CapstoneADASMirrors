@@ -39,6 +39,7 @@ const int COMPLETE_NO_ERROR = 0x00;
 const int COMPLETE_UNRECOGNIZED_CMD = 0x01;
 const int COMPLETE_NO_LIDAR_READ = 0x02;
 const int COMPLETE_LIDAR_READ_DATA = 0x03;
+const int COMPLETE_CANT_SET_LIDAR = 0x04;
 
 // Ack Errors
 const int ACK_NO_ERROR = 0x00;
@@ -54,7 +55,7 @@ const int ACK_TIMEOUT_ERROR = 0x04;
 
 // Supporting Functions
 
-void writeTest(byte myAddress, byte myValue, byte lidarliteAddress)
+int writeTest(byte myAddress, byte myValue, byte lidarliteAddress)
 {
   Wire.beginTransmission((int)lidarliteAddress);
   Wire.write((int)myAddress); // Set register for write
@@ -62,13 +63,16 @@ void writeTest(byte myAddress, byte myValue, byte lidarliteAddress)
 
   // A nack means the device is not responding, report the error over serial
   int nackCatcher = Wire.endTransmission();
+  return nackCatcher // 0 means no error
+  /*
   if(nackCatcher != 0)
   {
-    Serial.println("> NAK_A");
+    //Serial.println("> NAK_A");
   } else
   {
    // Serial.println("> AK_A");
   }
+`*/
 
   delay(0.5); // 1 ms delay recommended
 }
@@ -89,11 +93,16 @@ void cmd_initLIDAR(){
   //delay(5000);
 
   //SETUP DEFAULT CONFIG -
-  writeTest(0x02,0x80,lidarliteAddress); // Default
-  writeTest(0x04,0x08,lidarliteAddress); // Default
-  writeTest(0x1c,0x00,lidarliteAddress); // Default
+  checkA = writeTest(0x02,0x80,lidarliteAddress); // Default
+  checkB = writeTest(0x04,0x08,lidarliteAddress); // Default
+  checkC = writeTest(0x1c,0x00,lidarliteAddress); // Default
 
+  checkError = checkA*checkB*checkC;
+  if (checkError == 0) {
     sendCompletedMessage(COMPLETE_NO_ERROR, 1, EMPTY);
+   }else{
+    sendCompletedMessage(COMPLETE_CANT_SET_LIDAR, 1, EMPTY);
+   }
 }
 
 void cmd_readDist(){
