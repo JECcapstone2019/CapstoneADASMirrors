@@ -35,6 +35,7 @@ const int CMD_NOP = 0x05;
 // Data Return ID Definitions
 const int COMPLETE_NO_ERROR = 0x00;
 const int COMPLETE_UNRECOGNIZED_CMD = 0x01;
+const int COMPLETE_NO_LIDAR_READ = 0x02;
 const int COMPLETE_LIDAR_READ_DATA = 0x03;
 
 // Ack Errors
@@ -51,6 +52,69 @@ const int ACK_TIMEOUT_ERROR = 0x04;
 // Do nothing and send a completed message with no error
 void cmd_nop(){
     sendCompletedMessage(COMPLETE_NO_ERROR, 1, EMPTY);
+}
+
+void cmd_initLIDAR(){
+
+  //Serial.begin(9600); //Initialize serial connect for display purposes
+  Wire.begin();
+
+  byte lidarliteAddress = 0x62; //98 - slave address
+  //Serial.print(lidarliteAddress);
+  //delay(5000);
+
+  //SETUP DEFAULT CONFIG -
+  writeTest(0x02,0x80,lidarliteAddress); // Default
+  writeTest(0x04,0x08,lidarliteAddress); // Default
+  writeTest(0x1c,0x00,lidarliteAddress); // Default
+
+    sendCompletedMessage(COMPLETE_NO_ERROR, 1, EMPTY);
+}
+
+void cmd_readDist(){
+
+  int dist;
+  byte recByte;
+
+  byte lidarliteAddress = 0x62; //98 - slave address
+  writeTest(0x00,0x04,lidarliteAddress);
+  byte distanceArray[2];
+  byte myAddress = 0x8f; // location of distance information **NOTE THERE IS A VELOCITY ONE TOO
+  int numOfBytes = 2;
+
+   Wire.beginTransmission((int)lidarliteAddress);
+   Wire.write((int)myAddress); // Set the register to be read
+
+   // A nack means the device is not responding, report the error over serial
+   int nackCatcher = Wire.endTransmission();
+
+
+   // Request the two bytes
+   Wire.requestFrom((int)lidarliteAddress, numOfBytes);
+   int i = 0;
+   if(numOfBytes <= Wire.available())
+   {
+      while(i < numOfBytes)
+      {
+        distanceArray[i] = Wire.read();
+        i++;
+      }
+   }
+
+  // Shift and add
+  //int distance = (distanceArray[0] << 8) + distanceArray[1];
+  //Serial.println(distance);
+
+  //delay(1000);
+
+   if(nackCatcher != 0)
+   {
+        sendCompletedMessage(COMPLETE_NO_LIDAR_READ, 1, EMPTY);
+     //Serial.println("> nack");
+   }else{
+        sendCompletedMessage(COMPLETE_LIDAR_READ_DATA, 2, distanceArray);
+   }
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
