@@ -28,8 +28,10 @@ int SEQUENCE_COUNT = 0;
 // Command ID Definitions
 const int CMD_COMPLETED = 0x01;
 const int CMD_ACK = 0x02;
-const int CMD_LIDAR_READ_REG = 0x03;
-const int CMD_LIDAR_WRITE_REG = 0x04;
+const int CMD_LIDAR_SETUP = 0x03;
+const int CMD_LIDAR_READ = 0x04;
+//const int CMD_LIDAR_READ_REG = 0x03;
+//const int CMD_LIDAR_WRITE_REG = 0x04;
 const int CMD_NOP = 0x05;
 
 // Data Return ID Definitions
@@ -181,6 +183,12 @@ void parseMessage(int cmd_id, int data_footer_size, byte *message_data_footer){
     }
     else if(cmd_id == CMD_NOP){
         cmd_nop();
+    }
+    else if(cmd_id == CMD_LIDAR_SETUP){
+        cmd_initLIDAR();
+    }
+    else if(cmd_id == CMD_LIDAR_READ){
+        cmd_readDist();
     }
     else{
         // Unrecognized Command ID - Return Error
