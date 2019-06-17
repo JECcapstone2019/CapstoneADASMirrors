@@ -101,7 +101,7 @@ class Lidar(LidarControl):
 class LidarArdunio(LidarControl):
     def __init__(self, arduinoControl):
         LidarControl.__init__(self)
-        arduinoControl.send
+       // arduinoControl.send
 
 
 
