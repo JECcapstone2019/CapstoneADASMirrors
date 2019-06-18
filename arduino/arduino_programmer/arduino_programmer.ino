@@ -63,7 +63,8 @@ int writeTest(byte myAddress, byte myValue, byte lidarliteAddress)
 
   // A nack means the device is not responding, report the error over serial
   int nackCatcher = Wire.endTransmission();
-  return nackCatcher // 0 means no error
+  delay(2); // 1 ms delay recommended
+  return nackCatcher; // 0 means no error
   /*
   if(nackCatcher != 0)
   {
@@ -73,8 +74,6 @@ int writeTest(byte myAddress, byte myValue, byte lidarliteAddress)
    // Serial.println("> AK_A");
   }
 `*/
-
-  delay(0.5); // 1 ms delay recommended
 }
 
 
@@ -93,11 +92,11 @@ void cmd_initLIDAR(){
   //delay(5000);
 
   //SETUP DEFAULT CONFIG -
-  checkA = writeTest(0x02,0x80,lidarliteAddress); // Default
-  checkB = writeTest(0x04,0x08,lidarliteAddress); // Default
-  checkC = writeTest(0x1c,0x00,lidarliteAddress); // Default
+  int checkA = writeTest(0x02,0x80,lidarliteAddress); // Default
+  int checkB = writeTest(0x04,0x08,lidarliteAddress); // Default
+  int checkC = writeTest(0x1c,0x00,lidarliteAddress); // Default
 
-  checkError = checkA*checkB*checkC;
+  int checkError = checkA*checkB*checkC;
   if (checkError == 0) {
     sendCompletedMessage(COMPLETE_NO_ERROR, 1, EMPTY);
    }else{
@@ -112,7 +111,7 @@ void cmd_readDist(){
 
   byte lidarliteAddress = 0x62; //98 - slave address
   writeTest(0x00,0x04,lidarliteAddress);
-  byte distanceArray[2];
+  byte distanceArray[2] = {0x01, 0xff};
   byte myAddress = 0x8f; // location of distance information **NOTE THERE IS A VELOCITY ONE TOO
   int numOfBytes = 2;
 
@@ -146,7 +145,7 @@ void cmd_readDist(){
         sendCompletedMessage(COMPLETE_NO_LIDAR_READ, 1, EMPTY);
      //Serial.println("> nack");
    }else{
-        sendCompletedMessage(COMPLETE_LIDAR_READ_DATA, 2, distanceArray);
+        sendCompletedMessage(COMPLETE_LIDAR_READ_DATA, 3, distanceArray);
    }
 
 }
@@ -163,18 +162,13 @@ void emptySerialBuffer(){
 
 
 // Message Creation Functions //////////////////////////////////////////////////////////////////////////////////////////
-void updateSequenceCount(){
-    SEQUENCE_COUNT = (SEQUENCE_COUNT + 1);
-    if(SEQUENCE_COUNT > SEQUENCE_COUNT_MAX){
-        SEQUENCE_COUNT = 0;
-    }
-}
 
 // Create a byte message for sending to the host and put it in the message[] buffer
 void sendMessage(int cmd_id, int data_size, byte *data){
     int message_length = LEN_MSG_HEADER + data_size + LEN_MSG_FOOTER;
     byte message[message_length];
-    updateSequenceCount();
+    SEQUENCE_COUNT = SEQUENCE_COUNT + 1;
+    SEQUENCE_COUNT = SEQUENCE_COUNT & SEQUENCE_COUNT_MAX;
     message[MSG_HEADER_IND] = MSG_HEADER;
     message[MSG_CMD_IND] = byte(cmd_id);
     message[MSG_SEQ_IND] = byte(SEQUENCE_COUNT);
@@ -209,11 +203,7 @@ void sendCompletedMessage(int rCode, int data_length, byte* data){
 
 // Parse the message to see what it wants us to do
 void parseMessage(int cmd_id, int data_footer_size, byte *message_data_footer){
-    if(cmd_id == CMD_LIDAR_READ_REG){
-    }
-    else if(cmd_id == CMD_LIDAR_WRITE_REG){
-    }
-    else if(cmd_id == CMD_NOP){
+    if(cmd_id == CMD_NOP){
         cmd_nop();
     }
     else if(cmd_id == CMD_LIDAR_SETUP){
@@ -244,7 +234,6 @@ void loop() {
     int msg_size = 0;
     bool data_received = false;
     bool header_received = false;
-    bool msg_completed = false;
     bool ack_sent = false;
     // Timeout at 50ms
     for(int delay_wait = 0; delay_wait < LOOP_TIMEOUT; delay_wait++){
@@ -282,7 +271,6 @@ void loop() {
                 byte message_data_footer[msg_size];
                 Serial.readBytes(message_data_footer, msg_size);
                 message = message_data_footer;
-                msg_completed = true;
                 int cmd_id = (int) message_header[MSG_CMD_IND];
                 // Check the footer
                 if(message[msg_size - LEN_MSG_FOOTER] == MSG_FOOTER){
@@ -290,6 +278,7 @@ void loop() {
                     sendAckMessage(ACK_NO_ERROR);
                     // Remove the footer and then ship off the data to the parser
                     parseMessage(cmd_id, msg_size, message);
+                    ack_sent = true;
                     break;
                 }
                 else{
@@ -298,14 +287,12 @@ void loop() {
                     break;
                 }
             }
-            // Don't have full message yet, wait until timeout
-            else{
-                delay(REFRESH_DELAY);
-            }
         }
+        // Don't have full message yet, wait until timeout
+        delay(REFRESH_DELAY);
     }
     // Timed out without grabbing a full message
-    if(data_received & (msg_completed == false) & (ack_sent == false)){
+    if(ack_sent == false){
         sendAckMessage(ACK_TIMEOUT_ERROR);
     }
     // Clear the buffer

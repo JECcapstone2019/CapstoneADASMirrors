@@ -64,6 +64,7 @@ class ArduinoControl:
     def sendCommand(self, command, arr_data):
         # Check the inputs and then send the message
         message = self._buildMessage(i_commandID=command, arr_data=arr_data)
+        print("msg - %s" % str(list(message)))
         self.serial_comms.write(message)
         time.sleep(0.1)
         # print(self.serial_comms.in_waiting)
@@ -71,15 +72,18 @@ class ArduinoControl:
         # Wait for the ack
         ack = self._waitForMessage()
         if not(ack is defs.EMPTY):
+            print("ack - %s" % str(list(ack)))
             # Check if ack is ok
             self._checkSequenceCount(count=ack[defs.IND_SEQ_COUNT])
             self._checkAckMsg(ack_msg=ack)
             # Received ack so now lets check if it is bad or good
             completed_msg = self._waitForMessage()
             if not(completed_msg is defs.EMPTY):
+                print("comp - %s" % str(list(completed_msg)))
+                print("")
                 self._checkSequenceCount(count=completed_msg[defs.IND_SEQ_COUNT])
                 self._checkCompletedMsg(completed_msg=completed_msg)
-                return completed_msg
+                return list(completed_msg)
             else:
                 raise custom_exceptions.Serial_Communication_Completed_Timeout()
         else:
@@ -138,7 +142,9 @@ class ArduinoControl:
         return self.sequence_count
 
     def _checkSequenceCount(self, count):
-        if count != self._getSequenceCount():
+        seq = self._getSequenceCount()
+        if count != seq:
+            print("got %i - wanted %i" % (count, seq))
             raise custom_exceptions.Sequence_Count_Error(countExpected=self.sequence_count, countGiven=count)
 
     def _waitForBytes(self, numBytes, timeout):
@@ -152,21 +158,20 @@ class ArduinoControl:
             time.sleep(defs.REFRESH_DELAY * defs.MS_CONV)
         return empty_arr, timeout - delay
 
-
-
 if __name__ == '__main__':
-    a_control = ArduinoControl(port='/dev/cu.usbmodem14101') #port='/dev/cu.usbmodem14101'
+    a_control = ArduinoControl(port='COM7') #port='/dev/cu.usbmodem14101'
     a_control.connect()
     time.sleep(2)
-    #print(a_control.sendCommand(0x05, [0x00]))
+    print(list(a_control.sendCommand(0x05, [0x00])))
 
-    print(a_control.sendCommand(0x03, [0x00]))
+    print(list(a_control.sendCommand(0x03, [0x00])))
     while (100==100):
-        print(a_control.sendCommand(0x04, [0x00]))
+        print(list(a_control.sendCommand(0x04, [0x00])))
+        time.sleep(0.01)
 
-    print(a_control.sendCommand(0x05, [0x00]))
-    print(a_control.sendCommand(0x05, [0x00]))
-    print(a_control.sendCommand(0x05, [0x00]))
-    print(a_control.sendCommand(0x05, [0x00]))
-    print(a_control.sendCommand(0x05, [0x00]))
+    print(list(a_control.sendCommand(0x05, [0x00])))
+    print(list(a_control.sendCommand(0x05, [0x00])))
+    print(list(a_control.sendCommand(0x05, [0x00])))
+    print(list(a_control.sendCommand(0x05, [0x00])))
+    print(list(a_control.sendCommand(0x05, [0x00])))
     a_control.disconnect()
