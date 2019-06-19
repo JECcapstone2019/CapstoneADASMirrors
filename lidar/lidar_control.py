@@ -1,13 +1,17 @@
-#import smbus
 import time
-import serial
 from lidar import lidar_register_map
 from tools import custom_exceptions
 from tools.register_map import BitRegisterMap
 from arduino import arduino_defs as defs
+from arduino import arduino_control
+
 
 # Base control class
 class LidarControl:
+    # Error and no error for functions that don't return a value
+    ERROR = -1
+    NO_ERROR = 0
+
     def __init__(self, *args, **kwargs):
         # Grab all the register maps
         self._register_map = lidar_register_map.lidar_registers
@@ -50,18 +54,31 @@ class LidarControl:
 
 # Used to interface with the lidar if it is connected through a Arduino
 class LidarArdunio(LidarControl):
+    i2c_address = defs.LIDAR_I2C_ADDRESS
+
     def __init__(self, arduinoControl):
         LidarControl.__init__(self)
-        self.testClassVar = arduinoControl #Class variable
+        self.arduino_comms = arduinoControl #Class variable
 
     def connect(self): # SETUP DEFAULT CONFGURATION (OVERIDE METHOD)
-        self.testClassVar.sendCommand(self, defs.ID_LIDAR_SETUP, [0x00])
+        return_msg = self.arduino_comms.sendCommand(defs.ID_LIDAR_SETUP, [0x00])
 
     def getDistance(self):
-        messagereturn = self.testClassVar.sendCommand(self, defs.ID_LIDAR_READ, [0x00])
+        messagereturn = self.arduino_comms.sendCommand(defs.ID_LIDAR_READ, [0x00])
         # Shift and add
         distance = (messagereturn[5] << 8) + messagereturn[6]
         return distance
+
+    def readFromRegister(self, address, numBytes=1):
+        returnMsg = self.arduino_comms.sendCommand(0x06, [0x62, address, numBytes])
+        return returnMsg
+
+    def writeToRegister(self, address, values):
+        if type(values) is list:
+            valueArray = [0x62, address] + values
+        else:
+            valueArray = [0x62, address, values]
+        return self.arduino_comms.sendCommand(0x07, valueArray)
 
 
 #
@@ -70,10 +87,15 @@ class LidarArdunio(LidarControl):
 # Used to interface with the lidar if it is directly connected to the cpu
 class Lidar(LidarControl):
     def __init__(self):
+        try:
+            import smbus2
+        except ImportError:
+            print("Uh Oh! Looks like you don't have smbus installed")
+            print("please install with >pip install smbus2")
+
         LidarControl.__init__(self)
 
         self.bus = None
-        self.address = LIDAR_I2C_ADDRESS
 
         self.address = 0x62
         self.distWriteReg = 0x00
@@ -86,7 +108,7 @@ class Lidar(LidarControl):
 
     def connect(self, bus):
         try:
-            self.bus = smbus.SMBus(bus)
+            self.bus = smbus2.SMBus(bus)
             time.sleep(0.5)
             return 0
         except:
@@ -113,6 +135,7 @@ class Lidar(LidarControl):
         vel = self.readFromRegister(self.velReadReg)
         return self._convertSignedInt(vel)
 
+
 # Virtual Lidar interface used for testing
 class LidarVirtual(LidarControl):
     def __init__(self):
@@ -121,27 +144,27 @@ class LidarVirtual(LidarControl):
 
     def connect(self, debug_error=False):
         if debug_error:
-            return ERROR
+            return self.ERROR
         else:
-            return NO_ERROR
+            return self.NO_ERROR
 
     def disconnect(self, debug_error=False):
         if debug_error:
-            return ERROR
+            return self.ERROR
         else:
-            return NO_ERROR
+            return self.NO_ERROR
 
     def writeToRegister(self, register, value, debug_error=False):
         if debug_error:
-            return ERROR
+            return self.ERROR
         else:
             self._registerWriteable(register=register)
             self.registers[register] = value
-            return NO_ERROR
+            return self.NO_ERROR
 
     def readFromRegister(self, register, debug_error=False):
         if debug_error:
-            return ERROR
+            return self.ERROR
         else:
             self._registerReadable(register=register)
             try:
@@ -152,6 +175,7 @@ class LidarVirtual(LidarControl):
 
 
 if __name__ == '__main__':
-    cTest = LidarArdunio()
+    arduino_comms = arduino_control.ArduinoControl(port='COM6')
+    cTest = LidarArdunio(arduinoControl=arduino_comms)
     cTest.connect()
     distanceRet = cTest.getDistance()

@@ -29,10 +29,10 @@ int SEQUENCE_COUNT = 0;
 const int CMD_COMPLETED = 0x01;
 const int CMD_ACK = 0x02;
 const int CMD_LIDAR_SETUP = 0x03;
-const int CMD_LIDAR_READ = 0x04;
-//const int CMD_LIDAR_READ_REG = 0x03;
-//const int CMD_LIDAR_WRITE_REG = 0x04;
+const int CMD_LIDAR_DISTANCE = 0x04;
 const int CMD_NOP = 0x05;
+const int CMD_I2C_READ = 0x06;
+const int CMD_I2C_WRITE = 0x07;
 
 // Data Return ID Definitions
 const int COMPLETE_NO_ERROR = 0x00;
@@ -40,6 +40,9 @@ const int COMPLETE_UNRECOGNIZED_CMD = 0x01;
 const int COMPLETE_NO_LIDAR_READ = 0x02;
 const int COMPLETE_LIDAR_READ_DATA = 0x03;
 const int COMPLETE_CANT_SET_LIDAR = 0x04;
+const int COMPLETE_WRONG_CMD_LENGTH = 0x05;
+const int COMPLETE_I2C_READ_ERROR = 0x06;
+const int COMPLETE_I2C_TIMEOUT = 0x07;
 
 // Ack Errors
 const int ACK_NO_ERROR = 0x00;
@@ -50,20 +53,20 @@ const int ACK_TIMEOUT_ERROR = 0x04;
 
 // Completed Errors
 
-// Command Functions ///////////////////////////////////////////////////////////////////////////////////////////////////
-
+// LIDAR Definitions
+const int LIDAR_I2C_ADDRESS = 0x62;
 
 // Supporting Functions
 
-int writeTest(byte myAddress, byte myValue, byte lidarliteAddress)
+int I2CWriteByte(byte registerAddress, byte myValue, byte deviceAddress)
 {
-  Wire.beginTransmission((int)lidarliteAddress);
-  Wire.write((int)myAddress); // Set register for write
+  Wire.beginTransmission((int)deviceAddress);
+  Wire.write((int)registerAddress); // Set register for write
   Wire.write((int)myValue); // Write myValue to register
 
   // A nack means the device is not responding, report the error over serial
   int nackCatcher = Wire.endTransmission();
-  delay(2); // 1 ms delay recommended
+  delay(1); // 1 ms delay recommended
   return nackCatcher; // 0 means no error
   /*
   if(nackCatcher != 0)
@@ -76,6 +79,11 @@ int writeTest(byte myAddress, byte myValue, byte lidarliteAddress)
 `*/
 }
 
+int I2CWriteByteArray(byte deviceAddress, byte firstRegisterAddress, int numBytes, byte *writeArray){
+    // TODO: if needed
+}
+
+// Command Functions ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Do nothing and send a completed message with no error
 void cmd_nop(){
@@ -87,14 +95,13 @@ void cmd_initLIDAR(){
   //Serial.begin(9600); //Initialize serial connect for display purposes
   Wire.begin();
 
-  byte lidarliteAddress = 0x62; //98 - slave address
-  //Serial.print(lidarliteAddress);
+  //Serial.print(LIDAR_I2C_ADDRESS);
   //delay(5000);
 
   //SETUP DEFAULT CONFIG -
-  int checkA = writeTest(0x02,0x80,lidarliteAddress); // Default
-  int checkB = writeTest(0x04,0x08,lidarliteAddress); // Default
-  int checkC = writeTest(0x1c,0x00,lidarliteAddress); // Default
+  int checkA = I2CWriteByte(0x02,0x80,LIDAR_I2C_ADDRESS); // Default
+  int checkB = I2CWriteByte(0x04,0x08,LIDAR_I2C_ADDRESS); // Default
+  int checkC = I2CWriteByte(0x1c,0x00,LIDAR_I2C_ADDRESS); // Default
 
   int checkError = checkA*checkB*checkC;
   if (checkError == 0) {
@@ -109,21 +116,21 @@ void cmd_readDist(){
   int dist;
   byte recByte;
 
-  byte lidarliteAddress = 0x62; //98 - slave address
-  writeTest(0x00,0x04,lidarliteAddress);
+  I2CWriteByte(0x00,0x04,LIDAR_I2C_ADDRESS);
   byte distanceArray[2] = {0x01, 0xff};
   byte myAddress = 0x8f; // location of distance information **NOTE THERE IS A VELOCITY ONE TOO
   int numOfBytes = 2;
 
-   Wire.beginTransmission((int)lidarliteAddress);
+   Wire.beginTransmission((int)LIDAR_I2C_ADDRESS);
    Wire.write((int)myAddress); // Set the register to be read
 
    // A nack means the device is not responding, report the error over serial
    int nackCatcher = Wire.endTransmission();
+   delay(1);
 
 
    // Request the two bytes
-   Wire.requestFrom((int)lidarliteAddress, numOfBytes);
+   Wire.requestFrom((int)LIDAR_I2C_ADDRESS, numOfBytes);
    int i = 0;
    if(numOfBytes <= Wire.available())
    {
@@ -148,6 +155,78 @@ void cmd_readDist(){
         sendCompletedMessage(COMPLETE_LIDAR_READ_DATA, 3, distanceArray);
    }
 
+}
+
+const int LEN_I2C_CMD = 3; // Proper length of I2C Commands
+
+// message data received should be in [I2C address, register address, numBytes to read, footer]
+void cmd_I2CReadByteArray(int data_footer_size, byte *message_data_footer){
+    // check if data is the correct size
+    if(data_footer_size < LEN_I2C_CMD){
+        sendCompletedMessage(COMPLETE_WRONG_CMD_LENGTH, 1, EMPTY);
+        return;
+    }
+    int deviceAddress = message_data_footer[0];
+    int registerAddress = message_data_footer[1];
+    int numOfBytes = message_data_footer[2];
+    Wire.beginTransmission(deviceAddress);
+    Wire.requestFrom(registerAddress, numOfBytes);
+    bool msg_received = false;
+    byte valueBuffer[numOfBytes];
+
+    // wait about 5ms for each byte
+    for(int delay_wait = 0; delay_wait < (5 * numOfBytes); delay_wait++){
+        // check if the correct num of bytes are ready
+        if(Wire.available() >= numOfBytes){
+            // read bytes into buffer, say msg received
+            for(int value = 0; value  < numOfBytes; value++){
+                valueBuffer[value] = Wire.read();
+                msg_received = true;
+            }
+        }
+        else{
+            delay(1);
+        }
+    }
+    if(Wire.endTransmission() != 0){
+        sendCompletedMessage(COMPLETE_I2C_READ_ERROR, 1, EMPTY);
+    }
+    else if(msg_received != true){
+        sendCompletedMessage(COMPLETE_I2C_TIMEOUT, 1, EMPTY);
+    }
+    else{
+        sendCompletedMessage(COMPLETE_NO_ERROR, numOfBytes, valueBuffer);
+    }
+    return;
+}
+
+// message data received should be in [I2C address, register address, writeByte1, writeByte2, ..., writeByteN, footer]
+void cmd_I2CWriteByteArray(int data_footer_size, byte *message_data_footer){
+    // check if data is the correct size
+    if(data_footer_size < LEN_I2C_CMD){
+        sendCompletedMessage(COMPLETE_WRONG_CMD_LENGTH, 1, EMPTY);
+        return;
+    }
+    int deviceAddress = message_data_footer[0];
+    int registerAddress = message_data_footer[1];
+    int numOfBytes = data_footer_size - LEN_I2C_CMD + 1;
+
+    // grab the subsection of the array
+    byte writeArray[numOfBytes];
+    for(int i = 0; i < numOfBytes; i++){
+        writeArray[i] = message_data_footer[i+LEN_I2C_CMD];
+    }
+
+    Wire.beginTransmission(deviceAddress);
+    Wire.write(writeArray, numOfBytes);
+
+    if(Wire.endTransmission() != 0){
+        sendCompletedMessage(COMPLETE_I2C_READ_ERROR, 1, EMPTY);
+    }
+    else{
+        sendCompletedMessage(COMPLETE_NO_ERROR, 1, EMPTY);
+    }
+    return;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -209,8 +288,14 @@ void parseMessage(int cmd_id, int data_footer_size, byte *message_data_footer){
     else if(cmd_id == CMD_LIDAR_SETUP){
         cmd_initLIDAR();
     }
-    else if(cmd_id == CMD_LIDAR_READ){
+    else if(cmd_id == CMD_LIDAR_DISTANCE){
         cmd_readDist();
+    }
+    else if(cmd_id == CMD_I2C_READ){
+        cmd_I2CReadByteArray(data_footer_size, message_data_footer);
+    }
+    else if(cmd_id == CMD_I2C_WRITE){
+        cmd_I2CWriteByteArray(data_footer_size, message_data_footer);
     }
     else{
         // Unrecognized Command ID - Return Error
