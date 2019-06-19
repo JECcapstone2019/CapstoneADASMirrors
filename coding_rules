@@ -56,6 +56,13 @@ Python Control
     pip freeze > _requirements.txt
     can be used in order to update the requirements file automatically.
 
+    installing from the requirements file can also be done using
+
+    pip install -r _requirements.txt
+
+    * Please ensure the virtual environment is activated before doing this as otherwise it will use your default python
+    installation and won't be checking the virtual environment's
+
 Exceptions
     Try to keep all possible errors as custom exceptions in the tools/custom_exceptions.py file. These should be named
     as can be seen in the file (Ex. class Custom_Byte_Error(Exception)
