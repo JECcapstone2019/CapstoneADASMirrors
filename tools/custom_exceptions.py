@@ -22,6 +22,9 @@ class Negative_Bit_value(Exception):
 class Missing_Program_Parameters(Exception):
     pass
 
+class Sub_Class_Not_Found_In_Factory(Exception):
+    pass
+
 # Camera ###############################################################################################################
 ########################################################################################################################
 

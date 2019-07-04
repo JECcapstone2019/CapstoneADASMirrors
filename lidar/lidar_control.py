@@ -1,6 +1,6 @@
 import time
 from lidar import lidar_register_map
-from tools import custom_exceptions
+from tools import custom_exceptions, class_factory
 from tools.register_map import BitRegisterMap
 from arduino import arduino_defs as defs
 from arduino import arduino_control
@@ -174,8 +174,19 @@ class LidarVirtual(LidarControl):
                 return self.registers[register]
 
 
+LIDAR_CLASSES = {}
+LIDAR_CLASSES['VLIDAR'] = LidarVirtual
+LIDAR_CLASSES['ALIDAR'] = LidarArdunio
+LIDAR_CLASSES['LIDAR'] = Lidar
+
+class LidarFactory(class_factory.ClassFactory):
+    def __init__(self):
+        self.registerCustomClass(classesDict=LIDAR_CLASSES)
+
+
+
 if __name__ == '__main__':
     arduino_comms = arduino_control.ArduinoControl(port='COM6')
-    cTest = LidarArdunio(arduinoControl=arduino_comms)
+    cTest = LidarFactory().create(customClassName='ALIDAR', arduinoControl=arduino_comms)
     cTest.connect()
     distanceRet = cTest.getDistance()

@@ -1,6 +1,6 @@
 import pyrealsense2 as rs
 import numpy as np
-from tools import custom_exceptions, time_stamping, image_tools
+from tools import custom_exceptions, time_stamping, class_factory
 import time
 import os
 import cv2
@@ -189,6 +189,14 @@ class D435RealSenseCamera(RealsenseCameraControl):
     def _ovr_addStream(self, streamType, streamFormat):
         self.config.enable_stream(streamType, self.stream_count, *self.frame_size, streamFormat, self.frame_rate)
 
+
+CAMERA_CLASSES = {}
+CAMERA_CLASSES['VCAMERA'] = VirtualRealsenseCamera
+CAMERA_CLASSES['CAMERA'] = D435RealSenseCamera
+
+class CameraFactory(class_factory.ClassFactory):
+    def __init__(self):
+        self.registerCustomClass(CAMERA_CLASSES)
 
 # Quick function to grab some images and save them as numpies
 def saveXImages(xImages, folderPath='', rate=1.0):
