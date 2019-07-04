@@ -27,11 +27,11 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         else:
             print("Camera Disabled")
 
-def run_gui():
+def run_gui(lidar, camera, dev):
     app = QtWidgets.QApplication(sys.argv)  # A new instance of QApplication
     form = runnerWindow()                 # We set the form to be our ExampleApp (design)
     form.show()                         # Show the form
     app.exec_()                         # and execute the app
 
 if __name__ == '__main__':
-    run_gui()
+    run_gui('VLidar', 'VCamera', True)
