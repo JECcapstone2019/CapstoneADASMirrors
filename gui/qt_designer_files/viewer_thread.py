@@ -1,6 +1,7 @@
 from PyQt5.QtCore import QThread, pyqtSignal, Qt
 from PyQt5.QtGui import QPixmap, QImage
 import datetime
+import time
 
 class ImageViewingThread(QThread):
     changePixmap = pyqtSignal(QPixmap)
@@ -14,17 +15,20 @@ class ImageViewingThread(QThread):
     def grabFrame(self):
         # TODO: fix
         try:
-            self.image_queue.get()
+            self.image_queue.get(timeout=1)
         except:
-            pass
+            print("Image Issue")
+            return None
 
     def run(self):
         while self.isRunning:
             try:
-                frame = self.grabFrame()
+                rgbImage = self.grabFrame()
+                if rgbImage is None:
+                    print("Running...")
+                    continue
                 #color_frame = frames.get_color_frame()
                 #rgbImage = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                rgbImage = frame
                 convertToQtFormat = QImage(rgbImage.data, rgbImage.shape[1], rgbImage.shape[0], QImage.Format_RGB888)
                 convertToQtFormat = QPixmap.fromImage(convertToQtFormat)
                 p = convertToQtFormat.scaled(640, 480, Qt.KeepAspectRatio)
@@ -35,6 +39,7 @@ class ImageViewingThread(QThread):
             except:
                 pass
             print("Running...")
+            time.sleep(.001)
         print("Thread exited")
 
     def stop(self):
