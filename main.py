@@ -1,5 +1,6 @@
 import argparse
 import configparser
+import os
 from tools import custom_exceptions
 from gui import main_gui
 
@@ -21,7 +22,7 @@ def parseCommandLine():
     parser.add_argument('-Lidar')
     parser.add_argument('-Camera')
     parser.add_argument('-Dev')
-    return parser
+    return parser.parse_args()
 
 def strToBool(strValue):
     if strValue.lower() in STR_TRUE:
@@ -34,19 +35,20 @@ def strToBool(strValue):
 
 # check the configuration the program is being run with,
 if __name__ == '__main__':
-    parser = parseCommandLine()
+    args = parseCommandLine()
     lidar_used = None
     camera_used = None
     dev_mode = False
 
     # Check if we are using the config file or command line options
-    if strToBool(parser.CFGFile):
+    if strToBool(args.CfgFile):
         try:
             cfg = configparser.ConfigParser()
-            cfg_data = cfg.read(parser.CfgPath)
-            lidar_used = cfg_data[STR_LIDAR][STR_VALUE]
-            camera_used = cfg_data[STR_CAMERA][STR_VALUE]
-            dev_mode = strToBool(cfg_data[STR_DEV][STR_VALUE])
+            cfg_file_path = os.path.join(os.getcwd(), args.CfgPath)
+            cfg.read(cfg_file_path)
+            lidar_used = cfg[STR_LIDAR][STR_VALUE]
+            camera_used = cfg[STR_CAMERA][STR_VALUE]
+            dev_mode = strToBool(cfg[STR_DEV][STR_VALUE])
         except:
             raise custom_exceptions.Missing_Program_Parameters
 
@@ -54,9 +56,9 @@ if __name__ == '__main__':
     else:
         try:
             # Determine type of lidar control
-            lidar_used = parser.Lidar
-            camera_used = parser.Camera
-            dev_mode = strToBool(parser.Dev)
+            lidar_used = args.Lidar
+            camera_used = args.Camera
+            dev_mode = strToBool(args.Dev)
         except:
             raise custom_exceptions.Missing_Program_Parameters
 
