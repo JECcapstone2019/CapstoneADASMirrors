@@ -1,9 +1,13 @@
 from PyQt5.QtCore import QThread, pyqtSignal, pyqtSlot
-import time, csv
+import time
+import csv
+import os
 
 class LidarReaderThread(QThread):
     onUpdateLidarDistance = pyqtSignal(str)
     onUpdateLidarVelocity = pyqtSignal(str)
+
+    SAVE_FILE_NAME = 'lidar_data.csv'
 
     def __init__(self, dataQueue, parent=None):
         QThread.__init__(self, parent=parent)
@@ -13,6 +17,7 @@ class LidarReaderThread(QThread):
         self.saving = False
         self.save_file = None
         self.csv_writer = None
+        self.count = 0
 
     def run(self):
         while self.isRunning:
@@ -23,7 +28,8 @@ class LidarReaderThread(QThread):
                 elif data_type is 1:
                     self.onUpdateLidarVelocity.emit(data)
                 if self.saving:
-                    self.csv_writer.writerow([data_type, data, timestamp])
+                    self.csv_writer.writerow([self.count, data_type, data, timestamp])
+                    self.count += 1
             except:
                 pass
             time.sleep(.001)
@@ -34,10 +40,13 @@ class LidarReaderThread(QThread):
         self.wait()
 
     @pyqtSlot(str)
-    def startSavingSimulation(self, filePath):
-        self.save_file = open(filePath, 'w')
+    def startSavingSimulation(self, folderPath):
+        file_path = os.path.join(folderPath, self.SAVE_FILE_NAME)
+        self.save_file = open(file_path, 'w')
         self.csv_writer = csv.writer(self.save_file)
+        self.count = 0
         self.saving = True
+        print("Started Saving Lidar Data")
 
     @pyqtSlot()
     def stopSavingSimulation(self):
@@ -47,3 +56,4 @@ class LidarReaderThread(QThread):
             self.csv_writer = None
             self.save_file.close()
         self.saving = False
+        print("Stopped Saving Lidar Data")

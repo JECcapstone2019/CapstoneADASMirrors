@@ -5,6 +5,7 @@ from gui.qt_designer_files import main_gui_ui, viewer_thread, lidar_reader_threa
 import sys
 import multiprocessing
 from tools import time_stamping
+from lidar import lidar_control
 
 from sketches.emilio import multiprocess_testing
 
@@ -42,7 +43,8 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         ################################################################################################################
 
         self.lidar_viewer = None
-        self.gui_lidar_queue = None
+        self.gui_lidar_data_queue = None
+        self.gui_lidar_cmd_queue = None
         self.lidar_process = None
 
         self.image_viewer = None
@@ -105,7 +107,7 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         self.imageViewer.setPixmap(QPixmap.fromImage(image))
 
     ## Lidar Reader Functions ##########################################################################################
-    def startLidarREader(self, dataQueue):
+    def startLidarReader(self, dataQueue):
         self.lidar_viewer = lidar_reader_thread.LidarReaderThread(dataQueue=dataQueue)
         self.lidar_viewer.onUpdateLidarDistance.connect(self.onUpdateLidarDistance)
         self.lidar_viewer.onUpdateLidarVelocity.connect(self.onUpdateLidarVelocity)
@@ -127,8 +129,17 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
     ## Lidar Functions #################################################################################################
     def onLidarEnable(self, checked):
         if checked:
+            self.gui_lidar_cmd_queue = multiprocessing.Queue()
+            self.gui_lidar_data_queue = multiprocessing.Queue()
+            self.startLidarReader(dataQueue=self.gui_lidar_data_queue)
+            self.lidar_process = lidar_control.LidarMultiproccess(dataQueue=self.gui_lidar_data_queue,
+                                                                  cmdQueue=self.gui_lidar_cmd_queue,
+                                                                  str_lidarStrID='ALIDAR') # TODO: Make this selectable
+            self.lidar_process.start()
             print("Lidar Enabled")
         else:
+            self.lidar_process.kill()
+            self.stopLidarReader()
             print("Lidar Disabled")
 
 
