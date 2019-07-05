@@ -28,7 +28,7 @@ class ImageViewingThread(QThread):
                 h, w, ch = rgbImage.shape
                 bytesPerLine = ch * w
                 convertToQtFormat = QImage(rgbImage.data, w, h, bytesPerLine, QImage.Format_RGB888)
-                self.update_image.emit(convertToQtFormat.scaled(640, 480, Qt.KeepAspectRatio))
+                self.update_image.emit(convertToQtFormat.scaled(480, 640, Qt.KeepAspectRatio))
             except:
                 pass
             print("Running...")

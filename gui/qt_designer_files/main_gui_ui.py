@@ -19,7 +19,7 @@ class Ui_MainWindow(object):
         self.horizontalLayout = QtWidgets.QHBoxLayout(self.centralwidget)
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.imageViewer = QtWidgets.QLabel(self.centralwidget)
-        self.imageViewer.setMinimumSize(QtCore.QSize(640, 480))
+        self.imageViewer.setMinimumSize(QtCore.QSize(0, 0))
         self.imageViewer.setAutoFillBackground(False)
         self.imageViewer.setText("")
         self.imageViewer.setObjectName("imageViewer")

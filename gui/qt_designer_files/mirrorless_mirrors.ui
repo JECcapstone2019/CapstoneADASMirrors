@@ -25,8 +25,8 @@
      <widget class="QLabel" name="imageViewer">
       <property name="minimumSize">
        <size>
-        <width>640</width>
-        <height>480</height>
+        <width>0</width>
+        <height>0</height>
        </size>
       </property>
       <property name="autoFillBackground">

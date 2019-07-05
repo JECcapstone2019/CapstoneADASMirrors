@@ -25,7 +25,7 @@ class testImageQueueProcess(multiprocessing.Process):
         self.queue = multiProc_queue
         if numpy_imageDict is None:
             self.image_dict = image_tools.createNumpyColorImagePatternDict(i_numImages=frameRate*5,
-                                                                           tup_frameSize=(640, 480))
+                                                                           tup_frameSize=(480, 640))
         else:
             self.image_dict = numpy_imageDict
         self.frame_sleep = 1.0/float(frameRate)
