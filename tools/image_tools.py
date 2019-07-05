@@ -66,7 +66,7 @@ def loadJPEGAsNumpy(filePath):
 def createNumpyColorImagePattern(tup_frameSize, i_bitsPerPixel=255, seed=0):
     w = tup_frameSize[0]
     h = tup_frameSize[1]
-    oned = np.arange(seed, w*h + seed) & i_bitsPerPixel
+    oned = (np.arange(seed, w*h + seed) & i_bitsPerPixel) / float(i_bitsPerPixel)
     oned = np.reshape(oned, tup_frameSize)
     return np.dstack((oned, oned, oned))
 

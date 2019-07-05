@@ -1,6 +1,7 @@
 import multiprocessing
 import time
 from tools import image_tools
+import cv2
 
 class testProcess(multiprocessing.Process):
     def __init__(self, pipe, *args, **kwargs):
@@ -32,7 +33,6 @@ class testImageQueueProcess(multiprocessing.Process):
         self.alive = True
         self.daemon = True
 
-
     def run(self):
         count = 0
         while self.alive:
@@ -46,13 +46,34 @@ class testImageQueueProcess(multiprocessing.Process):
     def kill(self):
         self.alive = False
 
+def testProcessViewer(imageQueue):
+    cv2.namedWindow('RealSense', cv2.WINDOW_AUTOSIZE)
+    for i in range(200):
+        image = None
+        try:
+            image = imageQueue.get(timeout=0.33)
+        except:
+            image = None
+        if image is None:
+            print("No image")
+            continue
+        # Show images
+        cv2.imshow('RealSense', image)
+        cv2.waitKey(33)
+    cv2.destroyAllWindows()
 
 if __name__ == '__main__':
-    p1, p2 = multiprocessing.Pipe()
-    proc = testProcess(p2)
-    proc.start()
-    for i in range(0, 6*3):
-        time.sleep(.25)
-        if p1.poll():
-            print(p1.recv())
-    proc.kill()
+    # p1, p2 = multiprocessing.Pipe()
+    # proc = testProcess(p2)
+    # proc.start()
+    # for i in range(0, 6*3):
+    #     time.sleep(.25)
+    #     if p1.poll():
+    #         print(p1.recv())
+    # proc.kill()
+
+    queue = multiprocessing.Queue()
+    process = testImageQueueProcess(multiProc_queue=queue)
+    process.start()
+    testProcessViewer(queue)
+    process.kill()

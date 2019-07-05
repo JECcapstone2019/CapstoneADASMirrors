@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>919</width>
+    <width>1015</width>
     <height>659</height>
    </rect>
   </property>
@@ -22,12 +22,18 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QHBoxLayout" name="horizontalLayout">
     <item>
-     <widget class="QGraphicsView" name="imageViewer">
+     <widget class="QLabel" name="imageViewer">
       <property name="minimumSize">
        <size>
-        <width>600</width>
-        <height>600</height>
+        <width>640</width>
+        <height>480</height>
        </size>
+      </property>
+      <property name="autoFillBackground">
+       <bool>false</bool>
+      </property>
+      <property name="text">
+       <string/>
       </property>
      </widget>
     </item>
@@ -149,7 +155,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>919</width>
+     <width>1015</width>
      <height>21</height>
     </rect>
    </property>

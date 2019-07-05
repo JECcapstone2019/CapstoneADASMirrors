@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'mirrorless_mirrors.ui'
 #
-# Created by: PyQt5 UI code generator 5.12.2
+# Created by: PyQt5 UI code generator 5.12.1
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -12,14 +12,16 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(919, 659)
+        MainWindow.resize(1015, 659)
         MainWindow.setMaximumSize(QtCore.QSize(16777215, 16777215))
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.horizontalLayout = QtWidgets.QHBoxLayout(self.centralwidget)
         self.horizontalLayout.setObjectName("horizontalLayout")
-        self.imageViewer = QtWidgets.QGraphicsView(self.centralwidget)
-        self.imageViewer.setMinimumSize(QtCore.QSize(600, 600))
+        self.imageViewer = QtWidgets.QLabel(self.centralwidget)
+        self.imageViewer.setMinimumSize(QtCore.QSize(640, 480))
+        self.imageViewer.setAutoFillBackground(False)
+        self.imageViewer.setText("")
         self.imageViewer.setObjectName("imageViewer")
         self.horizontalLayout.addWidget(self.imageViewer)
         self.verticalLayout = QtWidgets.QVBoxLayout()
@@ -74,7 +76,7 @@ class Ui_MainWindow(object):
         self.horizontalLayout.addLayout(self.verticalLayout)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 919, 21))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 1015, 21))
         self.menubar.setObjectName("menubar")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
