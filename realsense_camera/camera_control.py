@@ -229,7 +229,7 @@ def quickViewer(save=False):
     if save:
         path = time_stamping.createTimeStampedFolder(pathToFolder=os.getcwd(), str_Prefix='saved_images')
     count = 0
-    while(True):
+    for i in range(30*5):
         frames = camera.getFrames()
         color_frame = frames.get_color_frame()
         if not color_frame:

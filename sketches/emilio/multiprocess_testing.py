@@ -2,6 +2,8 @@ import multiprocessing
 import time
 from tools import image_tools
 import cv2
+from realsense_camera import camera_control
+import numpy as np
 
 class testProcess(multiprocessing.Process):
     def __init__(self, pipe, *args, **kwargs):
@@ -48,6 +50,49 @@ class testImageQueueProcess(multiprocessing.Process):
             count += 1
             if count >= self.num_images:
                 count = 0
+        print("Image Putter Done")
+
+    def kill(self):
+        self.alive = False
+
+
+class TestCameraProcess(multiprocessing.Process):
+    def __init__(self, multiProc_queue, frameRate=30, *args, **kwargs):
+        multiprocessing.Process.__init__(self, *args, **kwargs)
+        self.queue = multiProc_queue
+        self.frame_rate = frameRate
+        self.frame_sleep = 1.0/float(frameRate)
+        self.camera = None
+        self.alive = True
+        self.daemon = True
+
+    def connect(self):
+        self.camera = camera_control.D435RealSenseCamera((640, 480), self.frame_rate)
+        try:
+            self.camera.disconnect()
+        except:
+            pass
+        self.camera.connect()
+        self.camera.addColorStream()
+        self.camera.start()
+
+    def getFrame(self):
+        frames = self.camera.getFrames()
+        color_frame = frames.get_color_frame()
+        return np.asanyarray(color_frame.get_data())
+
+    def run(self):
+        old_image = None
+        self.connect()
+        while self.alive:
+            time.sleep(self.frame_sleep)
+            # use the old image if we are missing one of the counts
+            try:
+                image = self.getFrame()
+            except:
+                image = old_image
+            self.queue.put(image)
+            old_image = image
         print("Image Putter Done")
 
     def kill(self):

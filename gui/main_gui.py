@@ -42,15 +42,17 @@ def run_gui(lidar, camera, dev):
     app = QtWidgets.QApplication(sys.argv)  # A new instance of QApplication
     shared_image_queue = Queue()
 
-    # Grab the images from the folder
-    folder_path = os.path.join(os.getcwd(), 'saved_images_testing')
-    image_dict = image_tools.VirtualStream(numpyFolder=folder_path).np_images
-    for image, path in image_dict.items():
-        image_dict[image] = np.load(path)
+    # # Grab the images from the folder
+    # folder_path = os.path.join(os.getcwd(), 'saved_images_testing')
+    # image_dict = image_tools.VirtualStream(numpyFolder=folder_path).np_images
+    # for image, path in image_dict.items():
+    #     image_dict[image] = np.load(path)
+    #
+    # # startup the sender
+    # image_sender = multiprocess_testing.testImageQueueProcess(multiProc_queue=shared_image_queue,
+    #                                                           numpy_imageDict=image_dict)
+    image_sender = multiprocess_testing.TestCameraProcess(multiProc_queue=shared_image_queue)
 
-    # startup the sender
-    image_sender = multiprocess_testing.testImageQueueProcess(multiProc_queue=shared_image_queue,
-                                                              numpy_imageDict=image_dict)
     image_sender.start()
     form = runnerWindow(imageQueue=shared_image_queue) # We set the form to be our ExampleApp (design)
     form.show()                         # Show the form
