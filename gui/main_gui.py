@@ -1,16 +1,18 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import pyqtSlot
+from PyQt5 import QtWidgets
+from PyQt5.QtCore import pyqtSlot, pyqtSignal
 from PyQt5.QtGui import QImage, QPixmap
-from gui.qt_designer_files import main_gui_ui, viewer_thread
-import sys, os
-from sketches.emilio import multiprocess_testing
-from multiprocessing import Queue
+from gui.qt_designer_files import main_gui_ui, viewer_thread, lidar_reader_thread
+import sys
+import multiprocessing
+from tools import time_stamping
 
-from tools import image_tools
-import numpy as np
+from sketches.emilio import multiprocess_testing
 
 # Short overriding class for running the application
 class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
+    startSavingSimulation = pyqtSignal(str)
+    stopSavingSimulation = pyqtSignal()
+
     def __init__(self):
         super(self.__class__, self).__init__()
         self.setupUi(self)  # This is defined in design.py file automatically
@@ -39,7 +41,14 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
 
         ################################################################################################################
 
+        self.lidar_viewer = None
+        self.gui_lidar_queue = None
+        self.lidar_process = None
+
         self.image_viewer = None
+        self.gui_camera_queue = None
+        self.camera_process = None
+
         self.simulation_folder_path = ''
 
         self.connectObjectFunctions()
@@ -58,6 +67,7 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
 
         ## Simulation Functions ##
         self.simulationSelectFolder.pressed.connect(self.onSelectSimulationFolder)
+        self.simulationStartSavingNew.toggled.connect(self.onSimulationCheckboxToggled)
 
         ## Menu Bar Functions ##
         self.actionHide_Options.triggered.connect(self.onHideRunOptions)
@@ -82,26 +92,37 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
 
     ## Image Viewer Functions ##########################################################################################
     def startImageViewer(self, imageQueue):
-        if self.image_viewer is None:
-            try:
-                self.image_viewer = viewer_thread.ImageViewingThread(imageQueue=imageQueue, parent=self.imageViewer)
-                self.image_viewer.update_image.connect(self.onRepaintImage)
-                self.image_viewer.start()
-                return 0
-            except:
-                return -2
-        else:
-            self.stopImageViewer()
-            return -1
+        self.image_viewer = viewer_thread.ImageViewingThread(imageQueue=imageQueue, parent=self.imageViewer)
+        self.image_viewer.update_image.connect(self.onRepaintImage)
+        self.image_viewer.start()
 
     def stopImageViewer(self):
-        pass
+        self.image_viewer.stop()
 
     # Slot for the image thread to update the main image window
     @pyqtSlot(QImage)
     def onRepaintImage(self, image):
         self.imageViewer.setPixmap(QPixmap.fromImage(image))
 
+    ## Lidar Reader Functions ##########################################################################################
+    def startLidarREader(self, dataQueue):
+        self.lidar_viewer = lidar_reader_thread.LidarReaderThread(dataQueue=dataQueue)
+        self.lidar_viewer.onUpdateLidarDistance.connect(self.onUpdateLidarDistance)
+        self.lidar_viewer.onUpdateLidarVelocity.connect(self.onUpdateLidarVelocity)
+        self.lidar_viewer.startSavingSimulation.connect(self.startSavingSimulation)
+        self.lidar_viewer.stopSavingSimulation.connect(self.stopSavingSimulation)
+        self.lidar_viewer.start()
+
+    def stopLidarReader(self):
+        self.lidar_viewer.stop()
+
+    @pyqtSlot(str)
+    def onUpdateLidarDistance(self, str_distance):
+        print("Lidar Distance: %s" % str_distance)
+
+    @pyqtSlot(str)
+    def onUpdateLidarVelocity(self, str_velocity):
+        print("Lidar Distance: %s" % str_velocity)
 
     ## Lidar Functions #################################################################################################
     def onLidarEnable(self, checked):
@@ -114,8 +135,14 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
     ## Camera Functions ################################################################################################
     def onCameraEnabled(self, checked):
         if checked:
+            self.gui_camera_queue = multiprocessing.Queue()
+            self.startImageViewer(imageQueue=self.gui_camera_queue)
+            self.camera_process = multiprocess_testing.TestCameraProcess(multiProc_queue=self.gui_camera_queue)
+            self.camera_process.start()
             print("Camera Enabled")
         else:
+            self.camera_process.kill()
+            self.stopImageViewer()
             print("Camera Disabled")
 
 
@@ -132,32 +159,21 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         dialog = QtWidgets.QFileDialog()
         dialog.setFileMode(dialog.Directory)
         self.simulation_folder_path = dialog.getExistingDirectory(options=QtWidgets.QFileDialog.DontUseNativeDialog)
-        # Check folder #
-        # TODO: Load Simulation
         self.simulationFolderSelectedTextEdit.setText(self.simulation_folder_path)
+
+    def onSimulationCheckboxToggled(self, checked):
+        if checked:
+            folder_path = time_stamping.createTimeStampedFolder(str_Prefix='Simulation')
+            self.startSavingSimulation.emit(folder_path)
+        else:
+            self.stopSavingSimulation.emit()
 
 
 def run_gui(lidar, camera, dev):
     app = QtWidgets.QApplication(sys.argv)  # A new instance of QApplication
-    # shared_image_queue = Queue()
-    #
-    # # Grab the images from the folder
-    # folder_path = os.path.join(os.getcwd(), 'saved_images_testing')
-    # image_dict = image_tools.VirtualStream(numpyFolder=folder_path).np_images
-    # for image, path in image_dict.items():
-    #     image_dict[image] = np.load(path)
-    #
-    # # startup the sender
-    # image_sender = multiprocess_testing.testImageQueueProcess(multiProc_queue=shared_image_queue,
-    #                                                           numpy_imageDict=image_dict)
-    # image_sender = multiprocess_testing.TestCameraProcess(multiProc_queue=shared_image_queue)
-    #
-    # image_sender.start()
-
     form = runnerWindow() # We set the form to be our ExampleApp (design)
     form.show()                         # Show the form
     app.exec_()                         # and execute the app
-    # image_sender.kill()
 
 
 if __name__ == '__main__':

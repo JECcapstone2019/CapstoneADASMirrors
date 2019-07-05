@@ -1,6 +1,5 @@
 from PyQt5.QtCore import QThread, pyqtSignal, Qt
-from PyQt5.QtGui import QPixmap, QImage
-import datetime
+from PyQt5.QtGui import QImage
 import time
 
 class ImageViewingThread(QThread):
