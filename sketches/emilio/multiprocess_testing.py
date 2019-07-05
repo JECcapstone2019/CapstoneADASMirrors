@@ -35,9 +35,16 @@ class testImageQueueProcess(multiprocessing.Process):
 
     def run(self):
         count = 0
+        old_image = None
         while self.alive:
             time.sleep(self.frame_sleep)
-            self.queue.put(self.image_dict[count])
+            # use the old image if we are missing one of the counts
+            try:
+                image = self.image_dict[count]
+            except KeyError:
+                image = old_image
+            self.queue.put(image)
+            old_image = image
             count += 1
             if count >= self.num_images:
                 count = 0
