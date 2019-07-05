@@ -4,6 +4,7 @@ from tools import custom_exceptions, class_factory
 from tools.register_map import BitRegisterMap
 from arduino import arduino_defs as defs
 from arduino import arduino_control
+from multiprocessing import Process
 
 
 # Base control class
@@ -63,6 +64,10 @@ class LidarArdunio(LidarControl):
     def connect(self): # SETUP DEFAULT CONFGURATION (OVERIDE METHOD)
         return_msg = self.arduino_comms.sendCommand(defs.ID_LIDAR_SETUP, [0x00])
 
+    def disconnect(self):
+        # TODO: disconnect arduino
+        pass
+
     def getDistance(self):
         messagereturn = self.arduino_comms.sendCommand(defs.ID_LIDAR_READ, [0x00])
         # Shift and add
@@ -81,9 +86,6 @@ class LidarArdunio(LidarControl):
         return self.arduino_comms.sendCommand(0x07, valueArray)
 
 
-#
-# FOR LATER
-#
 # Used to interface with the lidar if it is directly connected to the cpu
 class Lidar(LidarControl):
     def __init__(self):
@@ -136,52 +138,125 @@ class Lidar(LidarControl):
         return self._convertSignedInt(vel)
 
 
-# Virtual Lidar interface used for testing
-class LidarVirtual(LidarControl):
-    def __init__(self):
-        LidarControl.__init__(self)
-        self.registers = BitRegisterMap(address_bits=8, data_bits=8)
-
-    def connect(self, debug_error=False):
-        if debug_error:
-            return self.ERROR
-        else:
-            return self.NO_ERROR
-
-    def disconnect(self, debug_error=False):
-        if debug_error:
-            return self.ERROR
-        else:
-            return self.NO_ERROR
-
-    def writeToRegister(self, register, value, debug_error=False):
-        if debug_error:
-            return self.ERROR
-        else:
-            self._registerWriteable(register=register)
-            self.registers[register] = value
-            return self.NO_ERROR
-
-    def readFromRegister(self, register, debug_error=False):
-        if debug_error:
-            return self.ERROR
-        else:
-            self._registerReadable(register=register)
-            try:
-                return self.registers[register]
-            except KeyError:
-                self.registers[register] = 0
-                return self.registers[register]
-
-
 LIDAR_CLASSES = {}
-LIDAR_CLASSES['VLIDAR'] = LidarVirtual
 LIDAR_CLASSES['ALIDAR'] = LidarArdunio
 LIDAR_CLASSES['LIDAR'] = Lidar
 
 class LidarFactory(class_factory.ClassFactory):
     def __init__(self):
         self.registerCustomClass(classesDict=LIDAR_CLASSES)
+
+
+class LidarMultiproccess(Process):
+    CMD_DISTANCE_MEASURE = 0
+    CMD_VELOCITY_MEASURE = 1
+    CMD_DISTANCE_STREAM = 2
+    CMD_VELOCITY_STREAM = 3
+    CMD_STOP = 4
+    CMD_ABORT = 5
+    CMD_NONE = 6
+    CMD_START = 7
+
+    ID_DISTANCE = 0
+    ID_VELOCITY = 1
+
+    def __init__(self, dataQueue, cmdQueue, str_lidarStrID, *args, **kwargs):
+        Process.__init__(self, *args, **kwargs)
+
+        # Communication Channels
+        self.data_queue = dataQueue
+        self.cmd_queue = cmdQueue
+
+        self.lidar_type = str_lidarStrID
+        self.lidar = None
+        self.abort = False
+        self.daemon = True
+
+        # Streaming flags
+        self.streaming_distance = False
+        self.streaming_velocity = False
+
+    def abortProcess(self):
+        self.abort = True
+
+    def connect(self, **kwargs):
+        self.lidar = LidarFactory().create(customClassName=self.lidar_type, **kwargs)
+
+    def disconnect(self):
+        self.lidar.disconnect()
+        self.lidar = None
+
+    def run(self):
+        # connect and wait to start
+        self.connect()
+        while not self.abort:
+            try:
+                cmd_id = self.cmd_queue.get(block=False)
+            except:
+                cmd_id = self.CMD_NONE
+            if cmd_id is self.CMD_START:
+                break
+            time.sleep(.001)
+        # Start actually taking measurements
+        while not self.abort:
+            # Check to see if we have a new command
+            try:
+                cmd_id = self.cmd_queue.get(block=False)
+            except:
+                cmd_id = self.CMD_NONE
+            # Do whatever the command says, or nothing
+            if self.streaming_distance or (cmd_id is self.CMD_DISTANCE_MEASURE):
+                self.data_queue.put((self.ID_DISTANCE, self.lidar.getDistance(), round(time.time() * 1000)))
+            if self.streaming_velocity or (cmd_id is self.CMD_VELOCITY_MEASURE):
+                self.data_queue.put((self.ID_VELOCITY, self.lidar.getVelocity(), round(time.time() * 1000)))
+            time.sleep(.001)
+        self.disconnect()
+
+
+class LidarMultiProcessSimulation(LidarMultiproccess):
+    def __init__(self, path_simulationFolder, i_startTimems, i_leewayms, dataQueue, *args, **kwargs):
+        LidarMultiproccess.__init__(dataQueue, None, None, *args, *kwargs)
+        self.sim_folder = path_simulationFolder
+
+        self.start_time = i_startTimems
+        self.sleep_times = {}
+        self.data_packs = {}
+
+        self.leeway_ms = i_leewayms
+        self.wait_time = (float(self.leeway_ms)/1000.0)/4.0
+        self.count = 0
+        self.last_data_sent = None
+
+    def connect(self):
+        pass
+
+    def parseSimulationFile(self):
+        # TODO: Parse file to get time differences and stuff
+        pass
+
+    def run(self):
+        self.connect()
+        self.count = 0
+        self.last_data_sent = self.start_time
+        while not self.abort:
+            while not self.checkIfReady():
+                time.sleep(self.wait_time)
+            self.sendData()
+            self.count += 1
+
+    def checkIfReady(self):
+        # Check if within 2ms
+        if abs(self.getTime() - self.last_data_sent) < self.leeway_ms:
+            return True
+        return False
+
+    def sendData(self):
+        self.data_queue.put(self.data_packs[self.count])
+        self.last_data_sent = self.getTime()
+
+    def getTime(self):
+        # gives the time in ms
+        return round(time.time() * 1000) - self.last_data_sent
 
 
 
