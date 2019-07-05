@@ -20,6 +20,12 @@
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
    <layout class="QHBoxLayout" name="horizontalLayout">
     <item>
      <widget class="QLabel" name="imageViewer">
@@ -38,118 +44,247 @@
      </widget>
     </item>
     <item>
-     <layout class="QVBoxLayout" name="verticalLayout">
-      <item>
-       <layout class="QFormLayout" name="formLayout">
-        <property name="sizeConstraint">
-         <enum>QLayout::SetDefaultConstraint</enum>
+     <layout class="QGridLayout" name="gridLayout">
+      <item row="6" column="0">
+       <widget class="QCheckBox" name="cameraEnableCheckBox">
+        <property name="text">
+         <string>Enable Camera Stream</string>
         </property>
-        <item row="2" column="0">
-         <widget class="QLabel" name="label">
-          <property name="text">
-           <string>Lidar Distance Measurement</string>
-          </property>
-         </widget>
-        </item>
-        <item row="2" column="1">
-         <widget class="QLabel" name="label_2">
-          <property name="text">
-           <string>Lidar Velocity Measurement</string>
-          </property>
-         </widget>
-        </item>
-        <item row="3" column="0">
-         <widget class="QTextEdit" name="lidarDistanceTextBox">
-          <property name="maximumSize">
-           <size>
-            <width>150</width>
-            <height>25</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-        <item row="3" column="1">
-         <widget class="QTextEdit" name="lidarVelocityTextBox">
-          <property name="enabled">
-           <bool>true</bool>
-          </property>
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>150</width>
-            <height>25</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="0">
-         <widget class="QRadioButton" name="enableLidar">
-          <property name="text">
-           <string>Enable Lidar</string>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="0">
-         <widget class="QComboBox" name="lidarSelector">
-          <item>
-           <property name="text">
-            <string>Arduino Lidar</string>
-           </property>
-          </item>
-          <item>
-           <property name="text">
-            <string>Virtual Lidar</string>
-           </property>
-          </item>
-          <item>
-           <property name="text">
-            <string>UPLidar</string>
-           </property>
-          </item>
-         </widget>
-        </item>
-        <item row="4" column="0">
-         <widget class="QRadioButton" name="enableCamera">
-          <property name="text">
-           <string>Enable Camera</string>
-          </property>
-         </widget>
-        </item>
-        <item row="5" column="0">
-         <widget class="QComboBox" name="cameraSelector">
-          <item>
-           <property name="text">
-            <string>RealSenseD435</string>
-           </property>
-          </item>
-          <item>
-           <property name="text">
-            <string>Virtual Camera</string>
-           </property>
-          </item>
-         </widget>
-        </item>
-        <item row="6" column="0">
-         <widget class="QLabel" name="carDetectionStatusLabel">
-          <property name="text">
-           <string>Car Detection Status</string>
-          </property>
-         </widget>
-        </item>
-        <item row="6" column="1">
-         <widget class="QLineEdit" name="carDetectionStatusTextBox"/>
-        </item>
-       </layout>
+       </widget>
+      </item>
+      <item row="7" column="0">
+       <widget class="QComboBox" name="cameraSelection"/>
+      </item>
+      <item row="16" column="2">
+       <widget class="Line" name="line_10">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+       </widget>
+      </item>
+      <item row="16" column="0">
+       <widget class="Line" name="line_9">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+       </widget>
+      </item>
+      <item row="8" column="0">
+       <widget class="QLabel" name="carDetectionTitle">
+        <property name="text">
+         <string>Car Detection</string>
+        </property>
+       </widget>
+      </item>
+      <item row="12" column="0">
+       <widget class="QLabel" name="imageViewerTitle">
+        <property name="text">
+         <string>Image Viewer Thread</string>
+        </property>
+       </widget>
+      </item>
+      <item row="14" column="0">
+       <widget class="QLabel" name="imageViewerLabel">
+        <property name="text">
+         <string>Thread Messages</string>
+        </property>
+       </widget>
+      </item>
+      <item row="11" column="0">
+       <widget class="QComboBox" name="carDetectionSelection"/>
+      </item>
+      <item row="4" column="0">
+       <widget class="QLabel" name="cameraTitle">
+        <property name="text">
+         <string>Camera</string>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="0">
+       <widget class="Line" name="line_2">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+       </widget>
+      </item>
+      <item row="14" column="1">
+       <widget class="QTextEdit" name="imageViewerTextEdit">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QComboBox" name="lidarSelection"/>
+      </item>
+      <item row="10" column="0">
+       <widget class="QCheckBox" name="carDetectionEnableCheckBox">
+        <property name="text">
+         <string>Enable Car Detection</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="lidarTitle">
+        <property name="text">
+         <string>Lidar</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QCheckBox" name="lidarEnableCheckBox">
+        <property name="text">
+         <string>Enable Lidar</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="Line" name="line_7">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QPushButton" name="lidarCheckProcessButton">
+        <property name="text">
+         <string>Check Process Is Alive</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1">
+       <widget class="QTextEdit" name="lidarTextEdit">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="1">
+       <widget class="Line" name="line_6">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+       </widget>
+      </item>
+      <item row="15" column="0">
+       <widget class="QLabel" name="simulationTitle">
+        <property name="text">
+         <string>Simulation Runner</string>
+        </property>
+       </widget>
+      </item>
+      <item row="13" column="0">
+       <widget class="Line" name="line_4">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+       </widget>
+      </item>
+      <item row="13" column="1">
+       <widget class="Line" name="line_8">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+       </widget>
+      </item>
+      <item row="9" column="0">
+       <widget class="Line" name="line_3">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="Line" name="line">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+       </widget>
+      </item>
+      <item row="9" column="1">
+       <widget class="Line" name="line_5">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+       </widget>
+      </item>
+      <item row="6" column="1">
+       <widget class="QPushButton" name="cameraCheckProcessButton">
+        <property name="text">
+         <string>Check Process Is Alive</string>
+        </property>
+       </widget>
+      </item>
+      <item row="17" column="0">
+       <widget class="QCheckBox" name="simulationRunSimulation">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="text">
+         <string>Run Simulation</string>
+        </property>
+       </widget>
+      </item>
+      <item row="11" column="1">
+       <widget class="QTextEdit" name="carDetectionTextEdit">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="7" column="1">
+       <widget class="QTextEdit" name="cameraTextEdit">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="16" column="1">
+       <widget class="Line" name="line_11">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+       </widget>
+      </item>
+      <item row="10" column="1">
+       <widget class="QPushButton" name="carDetectionCheckProcessButton_2">
+        <property name="text">
+         <string>Check Process Is Alive</string>
+        </property>
+       </widget>
+      </item>
+      <item row="18" column="0">
+       <widget class="QPushButton" name="simulationSelectFolder">
+        <property name="text">
+         <string>Select Simulation Folder</string>
+        </property>
+       </widget>
+      </item>
+      <item row="18" column="1">
+       <widget class="QTextEdit" name="simulationFolderSelectedTextEdit">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="17" column="1">
+       <widget class="QTextEdit" name="simulationTextEdit">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+       </widget>
       </item>
      </layout>
     </item>
    </layout>
   </widget>
+  <widget class="QStatusBar" name="statusbar"/>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
@@ -159,8 +294,25 @@
      <height>21</height>
     </rect>
    </property>
+   <widget class="QMenu" name="menuSettings">
+    <property name="title">
+     <string>Settings</string>
+    </property>
+    <addaction name="actionShow_Options"/>
+    <addaction name="actionHide_Options"/>
+   </widget>
+   <addaction name="menuSettings"/>
   </widget>
-  <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionShow_Options">
+   <property name="text">
+    <string>Show Options</string>
+   </property>
+  </action>
+  <action name="actionHide_Options">
+   <property name="text">
+    <string>Hide Options</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections/>
