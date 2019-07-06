@@ -180,7 +180,7 @@ class LidarMultiproccess(Process):
         self.abort = True
 
     def connect(self, **kwargs):
-        if self.lidar_type.lower() is 'alidar':
+        if self.lidar_type.lower() == 'alidar':
             self.arduino_control = arduino_control.ArduinoControl()
         self.lidar = LidarFactory().create(customClassName=self.lidar_type, arduinoControl=self.arduino_control,
                                            **kwargs)
