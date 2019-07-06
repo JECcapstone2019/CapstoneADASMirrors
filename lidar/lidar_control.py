@@ -176,11 +176,14 @@ class LidarMultiproccess(Process):
         self.streaming_distance = False
         self.streaming_velocity = False
 
-    def abortProcess(self):
+    def kill(self):
         self.abort = True
 
     def connect(self, **kwargs):
-        self.lidar = LidarFactory().create(customClassName=self.lidar_type, **kwargs)
+        if self.lidar_type.lower() is 'alidar':
+            self.arduino_control = arduino_control.ArduinoControl()
+        self.lidar = LidarFactory().create(customClassName=self.lidar_type, arduinoControl=self.arduino_control,
+                                           **kwargs)
 
     def disconnect(self):
         self.lidar.disconnect()
@@ -204,6 +207,17 @@ class LidarMultiproccess(Process):
                 cmd_id = self.cmd_queue.get(block=False)
             except:
                 cmd_id = self.CMD_NONE
+            if cmd_id is self.CMD_DISTANCE_STREAM:
+                self.streaming_distance = not(self.streaming_distance)
+            elif cmd_id is self.CMD_VELOCITY_STREAM:
+                self.streaming_velocity = not(self.streaming_velocity)
+            elif cmd_id is self.CMD_STOP:
+                self.streaming_distance = False
+                self.streaming_velocity = False
+            elif cmd_id is self.CMD_ABORT:
+                self.abortProcess()
+                continue
+
             # Do whatever the command says, or nothing
             if self.streaming_distance or (cmd_id is self.CMD_DISTANCE_MEASURE):
                 self.data_queue.put((self.ID_DISTANCE, self.lidar.getDistance(), round(time.time() * 1000)))

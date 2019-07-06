@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1015</width>
-    <height>742</height>
+    <height>870</height>
    </rect>
   </property>
   <property name="maximumSize">
@@ -321,6 +321,38 @@
          <string>Start Saving New Simulation</string>
         </property>
        </widget>
+      </item>
+      <item row="0" column="1">
+       <layout class="QGridLayout" name="gridLayout_2">
+        <item row="0" column="0">
+         <widget class="QPushButton" name="lidarGetDistanceButton">
+          <property name="text">
+           <string>Get Distance</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="2">
+         <widget class="QCheckBox" name="lidarStreamDistance">
+          <property name="text">
+           <string>Stream Distance</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QPushButton" name="lidarGetVelocityButton">
+          <property name="text">
+           <string>Get Velocity</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="3">
+         <widget class="QCheckBox" name="lidarStreamVelocity">
+          <property name="text">
+           <string>Stream Velocity</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </item>
      </layout>
     </item>

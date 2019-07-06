@@ -3,41 +3,10 @@ from tools import custom_exceptions
 import time
 from arduino import arduino_defs as defs
 
-class SerialMsg:
-    def __init__(self, cmd_id=0, header_id=defs.HEADER_ID, footer_id=defs.FOOTER_ID, *dataBytes):
-        self.cmd_id = self._checkIfByteSized(cmd_id)
-        self.footer_id = self._checkIfByteSized(footer_id)
-        self.header_id = self._checkIfByteSized(header_id)
-        self.data = []
-        for dataByte in dataBytes:
-            self.data += self._checkIfByteSized(dataByte)
-        self.size = self._checkIfByteSized(len(self.data) + 1)
-
-    def getBytes(self):
-        return bytearray([self.header, self.cmd_id, self.size, self.data, self.footer])
-
-    def setFromByteArray(self, byteArray):
-        raise NotImplementedError
-
-    def _checkIfByteSized(self, data):
-        if data > 255:
-            raise custom_exceptions.Bit_OverFlow
-        if data < 0:
-            raise custom_exceptions.Negative_Bit_value
-        return data
-
-    def _convertReturnedData(self):
-        # Check to see if this data needs to be converted/checked for size
-        try:
-            conv_func = defs.DATA_CONV[self.cmd_id]
-        except KeyError:
-            return self.data
-        return conv_func(self.data)
-
 
 # Class that controls the arduino by sending commands and getting back data via Serial connection
 class ArduinoControl:
-    def __init__(self, port=defs.ARDUNIO_PORT, baudRate=defs.ARDUINO_BAUD_RATE):
+    def __init__(self, port='auto', baudRate=defs.ARDUINO_BAUD_RATE):
         self.serial_comms = None
 
         self.port = port
@@ -45,13 +14,27 @@ class ArduinoControl:
 
         self.sequence_count = 0
 
-    def connect(self):
-        self.serial_comms = serial.Serial(self.port, self.baud_rate)  # Establish the connection on a specific port
+    def _connectToPort(self, port):
+        self.serial_comms = serial.Serial(port, self.baud_rate)  # Establish the connection on a specific port
         self.serial_comms.timeout = 0.1
         if not self.isConnected():
             self.serial_comms.open()
         self.serial_comms.read_all()
+        self.port = port
         return self.serial_comms.isOpen()
+
+    def connect(self):
+        if self.port is 'auto':
+            for port in defs.COMMON_PORTS:
+                try:
+                    connected = self._connectToPort(port=port)
+                    if connected:
+                        break
+                except:
+                    connected = False
+        else:
+            connected = self._connectToPort(port=self.port)
+        return connected
 
     def disconnect(self):
         if self.isConnected():
@@ -157,6 +140,7 @@ class ArduinoControl:
                 break
             time.sleep(defs.REFRESH_DELAY * defs.MS_CONV)
         return empty_arr, timeout - delay
+
 
 if __name__ == '__main__':
     a_control = ArduinoControl(port='COM7') #port='/dev/cu.usbmodem14101'

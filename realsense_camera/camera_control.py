@@ -4,6 +4,7 @@ from tools import custom_exceptions, time_stamping, class_factory
 import time
 import os
 import cv2
+from multiprocessing import Process
 
 D435_SERIAL_NUM = 831612073489
 
@@ -194,9 +195,51 @@ CAMERA_CLASSES = {}
 CAMERA_CLASSES['VCAMERA'] = VirtualRealsenseCamera
 CAMERA_CLASSES['CAMERA'] = D435RealSenseCamera
 
+
 class CameraFactory(class_factory.ClassFactory):
     def __init__(self):
         self.registerCustomClass(CAMERA_CLASSES)
+
+
+class CameraMultiProcess(Process):
+    def __init__(self, multiProc_queue, frameRate=30, frameSize=(640, 480), *args, **kwargs):
+        Process.__init__(self, *args, **kwargs)
+        self.queue = multiProc_queue
+        self.frame_rate = frameRate
+        self.frame_size = frameSize
+        self.frame_sleep = 1.0/float(frameRate)
+        self.camera = None
+        self.alive = True
+        self.daemon = True
+
+    def connect(self):
+        self.camera = D435RealSenseCamera(self.frame_size, self.frame_rate)
+        try:
+            self.camera.disconnect()
+        except:
+            pass
+        self.camera.connect()
+        self.camera.addColorStream()
+        self.camera.start()
+
+    def run(self):
+        self.connect()
+        while self.alive:
+            time.sleep(self.frame_sleep)
+            # use the old image if we are missing one of the counts
+            try:
+                frames = self.camera.getFrames()
+                time_stamp = round(time.time() * 1000)
+                color_frame = frames.get_color_frame()
+                image = np.asanyarray(color_frame.get_data())
+                self.queue.put(image, time_stamp)
+            except:
+                continue
+        print("Image Putter Done")
+
+    def kill(self):
+        self.alive = False
+
 
 # Quick function to grab some images and save them as numpies
 def saveXImages(xImages, folderPath='', rate=1.0):

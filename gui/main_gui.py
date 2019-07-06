@@ -3,11 +3,13 @@ from PyQt5.QtCore import pyqtSlot, pyqtSignal
 from PyQt5.QtGui import QImage, QPixmap
 from gui.qt_designer_files import main_gui_ui, viewer_thread, lidar_reader_thread
 import sys
+import os
+import time
 import multiprocessing
 from tools import time_stamping
 from lidar import lidar_control
+from realsense_camera import camera_control
 
-from sketches.emilio import multiprocess_testing
 
 # Short overriding class for running the application
 class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
@@ -21,10 +23,13 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
 
         # Define widget groups for hiding and disabling ################################################################
         self.sim_widgets = [self.simulationRunSimulation, self.simulationFolderSelectedTextEdit,
-                            self.simulationSelectFolder, self.simulationTextEdit, self.simulationTitle]
+                            self.simulationSelectFolder, self.simulationTextEdit, self.simulationTitle,
+                            self.simulationStartSavingNew]
 
         self.lidar_widgets = [self.lidarEnableCheckBox, self.lidarCheckProcessButton, self.lidarSelection,
                               self.lidarTextEdit, self.lidarTitle]
+
+        self.lidar_reader_widgets = [self.lidarReaderTitle, self.lidarReaderLabel, self.lidarReaderTextEdit]
 
         self.camera_widgets = [self.cameraEnableCheckBox, self.cameraCheckProcessButton, self.cameraTextEdit,
                                self.cameraSelection, self.cameraTitle]
@@ -35,10 +40,10 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
                                       self.carDetectionCheckProcessButton_2, self.carDetectionEnableCheckBox]
 
         self.line_widgets = [self.line, self.line_2, self.line_3, self.line_4, self.line_5, self.line_6, self.line_7,
-                             self.line_8, self.line_9, self.line_10, self.line_11]
+                             self.line_8, self.line_9, self.line_10, self.line_11, self.line_12, self.line_13]
 
-        self.option_widgets = [self.sim_widgets, self.lidar_widgets, self.camera_widgets, self.image_viewer_widgets,
-                               self.car_detection_widgets, self.line_widgets]
+        self.option_widgets = [self.sim_widgets, self.lidar_widgets, self.lidar_reader_widgets, self.camera_widgets,
+                               self.image_viewer_widgets, self.car_detection_widgets, self.line_widgets]
 
         ################################################################################################################
 
@@ -60,6 +65,10 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
 
         ## Lidar Functions ##
         self.lidarEnableCheckBox.clicked.connect(self.onLidarEnable)
+        self.lidarGetDistanceButton.pressed.connect(self.onLidarGetDistance)
+        self.lidarGetVelocityButton.pressed.connect(self.onLidarGetVelocity)
+        self.lidarStreamDistance.toggled.connect(self.onLidarStreamDistanceToggle)
+        self.lidarStreamVelocity.toggled.connect(self.onLidarStreamVelocityToggle)
 
         ## Camera Functions ##
         self.cameraEnableCheckBox.clicked.connect(self.onCameraEnabled)
@@ -96,6 +105,8 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
     def startImageViewer(self, imageQueue):
         self.image_viewer = viewer_thread.ImageViewingThread(imageQueue=imageQueue, parent=self.imageViewer)
         self.image_viewer.update_image.connect(self.onRepaintImage)
+        self.startSavingSimulation.connect(self.image_viewer.startSavingSimulation)
+        self.stopSavingSimulation.connect(self.image_viewer.stopSavingSimulation)
         self.image_viewer.start()
 
     def stopImageViewer(self):
@@ -111,8 +122,8 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         self.lidar_viewer = lidar_reader_thread.LidarReaderThread(dataQueue=dataQueue)
         self.lidar_viewer.onUpdateLidarDistance.connect(self.onUpdateLidarDistance)
         self.lidar_viewer.onUpdateLidarVelocity.connect(self.onUpdateLidarVelocity)
-        self.lidar_viewer.startSavingSimulation.connect(self.startSavingSimulation)
-        self.lidar_viewer.stopSavingSimulation.connect(self.stopSavingSimulation)
+        self.startSavingSimulation.connect(self.lidar_viewer.startSavingSimulation)
+        self.stopSavingSimulation.connect(self.lidar_viewer.stopSavingSimulation)
         self.lidar_viewer.start()
 
     def stopLidarReader(self):
@@ -136,19 +147,31 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
                                                                   cmdQueue=self.gui_lidar_cmd_queue,
                                                                   str_lidarStrID='ALIDAR') # TODO: Make this selectable
             self.lidar_process.start()
+            time.sleep(2)
             print("Lidar Enabled")
         else:
             self.lidar_process.kill()
             self.stopLidarReader()
             print("Lidar Disabled")
 
+    def onLidarGetDistance(self):
+        self.gui_lidar_cmd_queue.put(0)
+
+    def onLidarGetVelocity(self):
+        self.gui_lidar_cmd_queue.put(1)
+
+    def onLidarStreamDistanceToggle(self, checked):
+        self.gui_lidar_cmd_queue.put(2)
+
+    def onLidarStreamVelocityToggle(self, checked):
+        self.gui_lidar_cmd_queue.put(3)
 
     ## Camera Functions ################################################################################################
     def onCameraEnabled(self, checked):
         if checked:
             self.gui_camera_queue = multiprocessing.Queue()
             self.startImageViewer(imageQueue=self.gui_camera_queue)
-            self.camera_process = multiprocess_testing.TestCameraProcess(multiProc_queue=self.gui_camera_queue)
+            self.camera_process = camera_control.CameraMultiProcess(multiProc_queue=self.gui_camera_queue)
             self.camera_process.start()
             print("Camera Enabled")
         else:
@@ -156,14 +179,12 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
             self.stopImageViewer()
             print("Camera Disabled")
 
-
     ## Car Detection Functions #########################################################################################
     def onCarDetectionEnabled(self, checked):
         if checked:
             print("Car Detection Enabled")
         else:
             print("Car Detection Disabled")
-
 
     ## Simulation Functions ############################################################################################
     def onSelectSimulationFolder(self):
@@ -174,7 +195,7 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
 
     def onSimulationCheckboxToggled(self, checked):
         if checked:
-            folder_path = time_stamping.createTimeStampedFolder(str_Prefix='Simulation')
+            folder_path = time_stamping.createTimeStampedFolder(pathToFolder=os.getcwd(), str_Prefix='Simulation')
             self.startSavingSimulation.emit(folder_path)
         else:
             self.stopSavingSimulation.emit()
