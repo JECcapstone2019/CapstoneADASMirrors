@@ -56,15 +56,12 @@ class ArduinoControl:
         # Wait for the ack
         ack = self._waitForMessage()
         if not(ack is defs.EMPTY):
-            print("ack - %s" % str(list(ack)))
             # Check if ack is ok
             self._checkSequenceCount(count=ack[defs.IND_SEQ_COUNT])
             self._checkAckMsg(ack_msg=ack)
             # Received ack so now lets check if it is bad or good
             completed_msg = self._waitForMessage()
             if not(completed_msg is defs.EMPTY):
-                print("comp - %s" % str(list(completed_msg)))
-                print("")
                 self._checkSequenceCount(count=completed_msg[defs.IND_SEQ_COUNT])
                 self._checkCompletedMsg(completed_msg=completed_msg)
                 return list(completed_msg)

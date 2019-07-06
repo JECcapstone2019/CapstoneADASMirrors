@@ -47,7 +47,7 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
 
         ################################################################################################################
 
-        self.lidar_viewer = None
+        self.lidar_reader = None
         self.gui_lidar_data_queue = None
         self.gui_lidar_cmd_queue = None
         self.lidar_process = None
@@ -119,21 +119,21 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
 
     ## Lidar Reader Functions ##########################################################################################
     def startLidarReader(self, dataQueue):
-        self.lidar_viewer = lidar_reader_thread.LidarReaderThread(dataQueue=dataQueue)
-        self.lidar_viewer.onUpdateLidarDistance.connect(self.onUpdateLidarDistance)
-        self.lidar_viewer.onUpdateLidarVelocity.connect(self.onUpdateLidarVelocity)
-        self.startSavingSimulation.connect(self.lidar_viewer.startSavingSimulation)
-        self.stopSavingSimulation.connect(self.lidar_viewer.stopSavingSimulation)
-        self.lidar_viewer.start()
+        self.lidar_reader = lidar_reader_thread.LidarReaderThread(dataQueue=dataQueue)
+        self.lidar_reader.onUpdateLidarDistance.connect(self.onUpdateLidarDistance)
+        self.lidar_reader.onUpdateLidarVelocity.connect(self.onUpdateLidarVelocity)
+        self.startSavingSimulation.connect(self.lidar_reader.startSavingSimulation)
+        self.stopSavingSimulation.connect(self.lidar_reader.stopSavingSimulation)
+        self.lidar_reader.start()
 
     def stopLidarReader(self):
-        self.lidar_viewer.stop()
+        self.lidar_reader.stop()
 
-    @pyqtSlot(str)
+    @pyqtSlot(int)
     def onUpdateLidarDistance(self, str_distance):
         print("Lidar Distance: %s" % str_distance)
 
-    @pyqtSlot(str)
+    @pyqtSlot(int)
     def onUpdateLidarVelocity(self, str_velocity):
         print("Lidar Distance: %s" % str_velocity)
 

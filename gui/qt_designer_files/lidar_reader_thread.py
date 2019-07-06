@@ -2,10 +2,11 @@ from PyQt5.QtCore import QThread, pyqtSignal, pyqtSlot
 import time
 import csv
 import os
+import queue
 
 class LidarReaderThread(QThread):
-    onUpdateLidarDistance = pyqtSignal(str)
-    onUpdateLidarVelocity = pyqtSignal(str)
+    onUpdateLidarDistance = pyqtSignal(int)
+    onUpdateLidarVelocity = pyqtSignal(int)
 
     SAVE_FILE_NAME = 'lidar_data.csv'
 
@@ -22,7 +23,7 @@ class LidarReaderThread(QThread):
     def run(self):
         while self.isRunning:
             try:
-                data_type, data, timestamp = self.data_queue.get(timeout=1)
+                data_type, data, timestamp = self.data_queue.get(block=False)
                 if data_type is 0:
                     self.onUpdateLidarDistance.emit(data)
                 elif data_type is 1:
@@ -30,7 +31,7 @@ class LidarReaderThread(QThread):
                 if self.saving:
                     self.csv_writer.writerow([self.count, data_type, data, timestamp])
                     self.count += 1
-            except:
+            except queue.Empty:
                 pass
             time.sleep(.001)
 
