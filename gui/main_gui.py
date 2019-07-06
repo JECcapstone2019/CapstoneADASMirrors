@@ -145,9 +145,10 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
             self.startLidarReader(dataQueue=self.gui_lidar_data_queue)
             self.lidar_process = lidar_control.LidarMultiproccess(dataQueue=self.gui_lidar_data_queue,
                                                                   cmdQueue=self.gui_lidar_cmd_queue,
-                                                                  str_lidarStrID='ALIDAR') # TODO: Make this selectable
+                                                                  str_lidarStrID='alidar') # TODO: Make this selectable
             self.lidar_process.start()
-            time.sleep(2)
+            time.sleep(4)
+            self.gui_lidar_cmd_queue.put(7)
             print("Lidar Enabled")
         else:
             self.lidar_process.kill()

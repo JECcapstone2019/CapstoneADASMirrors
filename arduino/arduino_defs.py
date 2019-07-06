@@ -2,7 +2,7 @@
 ########################################################################################################################
 
 ARDUNIO_PORT = 'COM4'
-COMMON_PORTS = ['COM_1', 'COM_2', 'COM_3', 'COM_4', 'COM_5', 'COM_6', 'COM_7', 'COM_8', 'COM_9']
+COMMON_PORTS = ['COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9']
 ARDUINO_BAUD_RATE = 9600
 
 TIMEOUT = 5000  # in ms

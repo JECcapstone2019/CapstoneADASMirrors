@@ -21,6 +21,10 @@ class ArduinoControl:
             self.serial_comms.open()
         self.serial_comms.read_all()
         self.port = port
+        connected = self.serial_comms.isOpen()
+        if not(connected):
+            self.serial_comms.close()
+            self.serial_comms = None
         return self.serial_comms.isOpen()
 
     def connect(self):
@@ -39,7 +43,7 @@ class ArduinoControl:
     def disconnect(self):
         if self.isConnected():
             self.serial_comms.close()
-        return self.isConnected()
+        return not(self.isConnected())
 
     def isConnected(self):
         return self.serial_comms.isOpen()
@@ -47,11 +51,8 @@ class ArduinoControl:
     def sendCommand(self, command, arr_data):
         # Check the inputs and then send the message
         message = self._buildMessage(i_commandID=command, arr_data=arr_data)
-        print("msg - %s" % str(list(message)))
         self.serial_comms.write(message)
         time.sleep(0.1)
-        # print(self.serial_comms.in_waiting)
-        # print(self.serial_comms.read(5))
         # Wait for the ack
         ack = self._waitForMessage()
         if not(ack is defs.EMPTY):
@@ -143,15 +144,12 @@ class ArduinoControl:
 
 
 if __name__ == '__main__':
-    a_control = ArduinoControl(port='COM7') #port='/dev/cu.usbmodem14101'
+    a_control = ArduinoControl(port='COM5') #port='/dev/cu.usbmodem14101'
     a_control.connect()
     time.sleep(2)
     print(list(a_control.sendCommand(0x05, [0x00])))
 
     print(list(a_control.sendCommand(0x03, [0x00])))
-    while (100==100):
-        print(list(a_control.sendCommand(0x04, [0x00])))
-        time.sleep(0.01)
 
     print(list(a_control.sendCommand(0x05, [0x00])))
     print(list(a_control.sendCommand(0x05, [0x00])))

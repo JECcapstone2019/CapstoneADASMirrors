@@ -38,6 +38,9 @@ class LidarControl:
     def connect(self, *args, **kwargs):
         raise NotImplementedError
 
+    def setup(self, *args, **kwargs):
+        raise NotImplementedError
+
     def disconnect(self, *args, **kwargs):
         raise NotImplementedError
 
@@ -62,11 +65,13 @@ class LidarArdunio(LidarControl):
         self.arduino_comms = arduinoControl #Class variable
 
     def connect(self): # SETUP DEFAULT CONFGURATION (OVERIDE METHOD)
-        return_msg = self.arduino_comms.sendCommand(defs.ID_LIDAR_SETUP, [0x00])
+        self.arduino_comms.connect()
+
+    def setup(self):
+        self.arduino_comms.sendCommand(defs.ID_LIDAR_SETUP, [0x00])
 
     def disconnect(self):
-        # TODO: disconnect arduino
-        pass
+        self.arduino_comms.disconnect()
 
     def getDistance(self):
         messagereturn = self.arduino_comms.sendCommand(defs.ID_LIDAR_READ, [0x00])
@@ -184,6 +189,7 @@ class LidarMultiproccess(Process):
             self.arduino_control = arduino_control.ArduinoControl()
         self.lidar = LidarFactory().create(customClassName=self.lidar_type, arduinoControl=self.arduino_control,
                                            **kwargs)
+        self.lidar.connect()
 
     def disconnect(self):
         self.lidar.disconnect()
@@ -192,12 +198,15 @@ class LidarMultiproccess(Process):
     def run(self):
         # connect and wait to start
         self.connect()
+        print("CONNECTED")
         while not self.abort:
             try:
                 cmd_id = self.cmd_queue.get(block=False)
             except:
                 cmd_id = self.CMD_NONE
             if cmd_id is self.CMD_START:
+                print("STARTED")
+                self.lidar.setup()
                 break
             time.sleep(.001)
         # Start actually taking measurements
@@ -215,7 +224,7 @@ class LidarMultiproccess(Process):
                 self.streaming_distance = False
                 self.streaming_velocity = False
             elif cmd_id is self.CMD_ABORT:
-                self.abortProcess()
+                self.kill()
                 continue
 
             # Do whatever the command says, or nothing
@@ -275,7 +284,11 @@ class LidarMultiProcessSimulation(LidarMultiproccess):
 
 
 if __name__ == '__main__':
-    arduino_comms = arduino_control.ArduinoControl(port='COM6')
-    cTest = LidarFactory().create(customClassName='ALIDAR', arduinoControl=arduino_comms)
+    arduino_comms = arduino_control.ArduinoControl(port='auto')
+    cTest = LidarFactory().create(customClassName='alidar', arduinoControl=arduino_comms)
     cTest.connect()
-    distanceRet = cTest.getDistance()
+    time.sleep(2)
+    cTest.setup()
+    for i in range(10):
+        distanceRet = cTest.getDistance()
+        print(distanceRet)
