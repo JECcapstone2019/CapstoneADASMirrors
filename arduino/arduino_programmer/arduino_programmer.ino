@@ -1,5 +1,7 @@
 #include <Wire.h>
 #include <String.h>
+#define FAST_I2C
+
 
 const int BAUD_RATE = 9600;
 const int REFRESH_DELAY = 100; // in ms
@@ -305,8 +307,16 @@ void parseMessage(int cmd_id, int data_footer_size, byte *message_data_footer){
 
 // Setup the serial communications
 void setup() {
-    Wire.begin();
     Serial.begin(BAUD_RATE);
+    // Initialize Arduino I2C (for communication to LidarLite)
+    Wire.begin();
+    #ifdef FAST_I2C
+        #if ARDUINO >= 157
+            Wire.setClock(400000UL); // Set I2C frequency to 400kHz (for Arduino Due)
+        #else
+            TWBR = ((F_CPU / 400000UL) - 16) / 2; // Set I2C frequency to 400kHz
+        #endif
+    #endif
 }
 
 void loop() {
