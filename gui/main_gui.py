@@ -27,7 +27,8 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
                             self.simulationStartSavingNew]
 
         self.lidar_widgets = [self.lidarEnableCheckBox, self.lidarCheckProcessButton, self.lidarSelection,
-                              self.lidarTextEdit, self.lidarTitle]
+                              self.lidarTextEdit, self.lidarTitle, self.lidarGetDistanceButton,
+                              self.lidarGetVelocityButton, self.lidarStreamDistance, self.lidarStreamVelocity]
 
         self.lidar_reader_widgets = [self.lidarReaderTitle, self.lidarReaderLabel, self.lidarReaderTextEdit]
 
