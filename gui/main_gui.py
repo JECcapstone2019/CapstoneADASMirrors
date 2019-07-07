@@ -1,6 +1,6 @@
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import pyqtSlot, pyqtSignal
-from PyQt5.QtGui import QImage, QPixmap
+from PyQt5.QtGui import QImage, QPixmap, QPainter, QPen, QColor
 from gui.qt_designer_files import main_gui_ui, viewer_thread, lidar_reader_thread
 import sys
 import os
@@ -13,6 +13,8 @@ from realsense_camera import camera_control
 
 # Short overriding class for running the application
 class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
+
+    # Thread Signals
     startSavingSimulation = pyqtSignal(str)
     stopSavingSimulation = pyqtSignal()
 
@@ -56,6 +58,10 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         self.image_viewer = None
         self.gui_camera_queue = None
         self.camera_process = None
+
+        self.car_detection_detected = False
+        self.car_detection_roi = [(-1, -1), (-1, -1)]
+        self.car_detection_color = QColor(255, 0, 0)
 
         self.simulation_folder_path = ''
 
@@ -101,22 +107,6 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         print("Showing Options")
         for widget_arr in self.option_widgets:
             self.hideWidgetArray(arr_widgets=widget_arr, show=True)
-
-    ## Image Viewer Functions ##########################################################################################
-    def startImageViewer(self, imageQueue):
-        self.image_viewer = viewer_thread.ImageViewingThread(imageQueue=imageQueue, parent=self.imageViewer)
-        self.image_viewer.update_image.connect(self.onRepaintImage)
-        self.startSavingSimulation.connect(self.image_viewer.startSavingSimulation)
-        self.stopSavingSimulation.connect(self.image_viewer.stopSavingSimulation)
-        self.image_viewer.start()
-
-    def stopImageViewer(self):
-        self.image_viewer.stop()
-
-    # Slot for the image thread to update the main image window
-    @pyqtSlot(QImage)
-    def onRepaintImage(self, image):
-        self.imageViewer.setPixmap(QPixmap.fromImage(image))
 
     ## Lidar Reader Functions ##########################################################################################
     def startLidarReader(self, dataQueue):
@@ -167,6 +157,36 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
 
     def onLidarStreamVelocityToggle(self, checked):
         self.gui_lidar_cmd_queue.put(3)
+
+    ## Image Viewer Functions ##########################################################################################
+    def startImageViewer(self, imageQueue):
+        self.image_viewer = viewer_thread.ImageViewingThread(imageQueue=imageQueue, parent=self.imageViewer)
+        self.image_viewer.update_image.connect(self.onRepaintImage)
+        self.startSavingSimulation.connect(self.image_viewer.startSavingSimulation)
+        self.stopSavingSimulation.connect(self.image_viewer.stopSavingSimulation)
+        self.image_viewer.start()
+
+    def stopImageViewer(self):
+        self.image_viewer.stop()
+
+    # Slot for the image thread to update the main image window
+    @pyqtSlot(QImage)
+    def onRepaintImage(self, image):
+        pixmap = QPixmap.fromImage(image)
+        if self.car_detection_detected:
+            # TODO: Add in when ready
+            pixmap = self.paintRectangle(pixmap=pixmap)
+        self.imageViewer.setPixmap(pixmap)
+
+    def paintRectangle(self, pixmap):
+        painter = QPainter(pixmap)
+        pen = QPen(self.car_detection_color) # TODO: Fix coloring
+        pen.setWidth(3)
+        painter.setPen(pen)
+        painter.drawRect(240, 240, 100, 100)
+        del pen
+        del painter
+        return pixmap
 
     ## Camera Functions ################################################################################################
     def onCameraEnabled(self, checked):
