@@ -44,6 +44,7 @@ class ImageViewingThread(QThread):
                 if self.save_file:
                     np.save(os.path.join(self.save_folder, 'image_%i.npy' % self.count), rgbImage)
                     self.csv_writer.writerow([self.count, image_timestamp])
+                    self.count += 1
             except:
                 pass
             time.sleep(.001)
