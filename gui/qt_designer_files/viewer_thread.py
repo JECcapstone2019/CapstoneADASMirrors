@@ -24,16 +24,15 @@ class ImageViewingThread(QThread):
     def grabFrame(self):
         # TODO: fix
         try:
-            return self.image_queue.get(timeout=1)
+            return self.image_queue.get(block=False)
         except:
-            return None
+            return (None, None)
 
     def run(self):
         while self.isRunning:
             try:
                 rgbImage, image_timestamp = self.grabFrame()
                 if rgbImage is None:
-                    print("Image Issue")
                     continue
                 h, w, ch = rgbImage.shape
                 bytesPerLine = ch * w

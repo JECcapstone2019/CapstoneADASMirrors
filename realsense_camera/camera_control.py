@@ -225,16 +225,16 @@ class CameraMultiProcess(Process):
     def run(self):
         self.connect()
         while self.alive:
-            time.sleep(self.frame_sleep)
             # use the old image if we are missing one of the counts
             try:
                 frames = self.camera.getFrames()
                 time_stamp = round(time.time() * 1000)
                 color_frame = frames.get_color_frame()
                 image = np.asanyarray(color_frame.get_data())
-                self.queue.put(image, time_stamp)
+                self.queue.put((image, time_stamp))
             except:
                 continue
+            time.sleep(self.frame_sleep)
         print("Image Putter Done")
 
     def kill(self):
@@ -290,6 +290,7 @@ def quickViewer(save=False):
         # Show images
         cv2.imshow('RealSense', color_image)
         cv2.waitKey(33)
+    camera.disconnect()
 
 
 
