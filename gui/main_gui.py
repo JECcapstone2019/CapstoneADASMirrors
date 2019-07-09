@@ -1,7 +1,7 @@
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import pyqtSlot, pyqtSignal
 from PyQt5.QtGui import QImage, QPixmap, QPainter, QPen, QColor
-from gui.qt_designer_files import main_gui_ui, viewer_thread, lidar_reader_thread
+from gui.qt_designer_files import main_gui_ui, viewer_thread, lidar_reader_thread, car_detection_thread
 import sys
 import os
 import time
@@ -59,6 +59,8 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         self.gui_camera_queue = None
         self.camera_process = None
 
+        self.car_detection_roi_thread = None
+        self.car_detection_roi_queue = None
         self.car_detection_detected = False
         self.car_detection_roi = [(-1, -1), (-1, -1)]
         self.car_detection_color = QColor(255, 0, 0)
@@ -204,9 +206,28 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
     ## Car Detection Functions #########################################################################################
     def onCarDetectionEnabled(self, checked):
         if checked:
+            self.startCarDetection()
             print("Car Detection Enabled")
+
         else:
+            self.stopCarDetection()
             print("Car Detection Disabled")
+
+    def startCarDetection(self):
+        self.car_detection_roi_queue = multiprocessing.Queue()
+        self.car_detection_roi_thread = car_detection_thread.CarDetectionThread(roiQueue=self.car_detection_roi_queue)
+        self.car_detection_roi_thread.update_roi.connect(self.onROIUpdated)
+        self.car_detection_roi_thread.start()
+        #TODO: Start Car Detection Process
+
+    def stopCarDetection(self):
+        self.car_detection_roi_thread.stop()
+        # TODO: Stop Car Detection Process
+
+    @pyqtSlot(int, int, int, int)
+    def onROIUpdated(self, x1, y1, x2, y2):
+        print("ROI Updated to (%i, %i) (%i, %i)" % (x1, y1, x2, y2))
+
 
     ## Simulation Functions ############################################################################################
     def onSelectSimulationFolder(self):
