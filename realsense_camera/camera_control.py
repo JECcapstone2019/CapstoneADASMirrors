@@ -5,6 +5,9 @@ import time
 import os
 import cv2
 from multiprocessing import Process
+import threading
+import queue
+import csv
 
 D435_SERIAL_NUM = 831612073489
 
@@ -204,7 +207,7 @@ class CameraFactory(class_factory.ClassFactory):
 class CameraMultiProcess(Process):
     def __init__(self, multiProc_queue, frameRate=30, frameSize=(640, 480), *args, **kwargs):
         Process.__init__(self, *args, **kwargs)
-        self.queue = multiProc_queue
+        self.image_queue = multiProc_queue
         self.frame_rate = frameRate
         self.frame_size = frameSize
         self.frame_sleep = 1.0/float(frameRate)
@@ -231,7 +234,7 @@ class CameraMultiProcess(Process):
                 time_stamp = round(time.time() * 1000)
                 color_frame = frames.get_color_frame()
                 image = np.asanyarray(color_frame.get_data())
-                self.queue.put((image, time_stamp))
+                self.image_queue.put((image, time_stamp))
             except:
                 continue
             time.sleep(self.frame_sleep)
@@ -240,6 +243,90 @@ class CameraMultiProcess(Process):
     def kill(self):
         self.alive = False
 
+
+class CameraMultiProcessSimulation(CameraMultiProcess):
+
+    class WorkerThread(threading.Thread):
+        def __init__(self, dataDict, imageQueue):
+            threading.Thread.__init__(self)
+            self.data_dict = dataDict
+            self.image_queue = imageQueue
+            self.daemon = True
+            self.count = 0
+            self.next_image = None
+            self.start()
+
+
+        def run(self):
+            while True:
+                self.loadNextImage()
+                try:
+                    self.image_queue.put(self.next_image, block=False)
+                    self.count += 1
+                    self.next_image = None
+                except queue.Full:
+                    pass
+                time.sleep(0.001)
+
+        def loadNextImage(self):
+            if self.next_image == None:
+                self.next_image = np.load(self.data_dict[self.count])
+
+    def __init__(self, path_simulationFolder, i_startTimems , multiProc_queue, frameRate=30, frameSize=(640, 480),
+                 *args, **kwargs):
+        CameraMultiProcess.__init__(multiProc_queue=multiProc_queue, frameRate=frameRate, frameSize=frameSize,
+                                    *args, **kwargs)
+        self.sim_folder = path_simulationFolder
+
+        self.start_time = i_startTimems
+        self.sleep_times = {}
+        self.image_timestamps = {}
+        self.image_paths = {}
+        self.max_count = 0
+
+        self.count = 0
+        self.last_data_sent = None
+        self.parseSimulationFile()
+        self.ms_conversion = 0.001
+
+        self.parseSimulationFile()
+
+        #Limit number of numpy images loaded so we don't overload the memory
+        self.worker_queue = queue.Queue(maxsize=50)
+        self.worker_thread = self.WorkerThread(dataDict=self.image_paths, imageQueue=self.worker_queue)
+        self.worker_thread.start()
+
+    def parseSimulationFile(self):
+        file_path = os.path.join(self.sim_folder, 'image_data.csv')
+        with open(file_path, 'r') as simFile:
+            reader = csv.reader(simFile)
+            last_time = 0
+            for row in reader:
+                if last_time == 0:
+                    last_time = row[1]
+                self.sleep_times[row[0]] = row[1] - last_time
+                self.image_timestamps[row[0]] = row[1]
+
+        self.max_count = len(self.sleep_times)
+        for image in range(self.max_count):
+            self.image_paths[image] = os.path.join(self.sim_folder, 'image_%i.npy' % image)
+
+    def run(self):
+        self.count = 0
+        time.sleep(self.start_time - self.getTime())
+        while self.alive:
+            self.sendData()
+            self.count += 1
+            time.sleep(self.ms_conversion * self.sleep_times[self.count])
+
+    def sendData(self):
+        self.image_queue.put((self.worker_queue.get(block=True), self.image_timestamps[self.count]))
+        self.last_data_sent = self.getTime()
+        self.worker_queue.task_done()
+
+    def getTime(self):
+        # gives the time in ms
+        return round(time.time() * 1000) - self.last_data_sent
 
 # Quick function to grab some images and save them as numpies
 def saveXImages(xImages, folderPath='', rate=1.0):
