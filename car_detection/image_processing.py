@@ -19,6 +19,10 @@ class ImageProcessor:
         self.abort = 0
         self.car_information_request = 1
 
+        self.cascade_src = 'cars.xml'
+        self.car_cascade = cv2.CascadeClassifier(self.cascade_src)
+
+
     # Grabs a frame for the image processor to use
     def getFrame(self):
         try:
@@ -94,7 +98,18 @@ class TrackerTesting(ImageProcessor):
 
     def runCarDetection(self):
         self.frame = self.getFrame()
-        roi = cv2.selectROI(self.frame_name, self.frame, fromCenter=False, showCrosshair=True)
+
+        # maual placment of roi
+        #roi = cv2.selectROI(self.frame_name, self.frame, fromCenter=False, showCrosshair=True)
+        
+        # detecting car using haar cascade 
+        gray_img = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
+        roi = self.car_cascade.detectMultiScale(gray_img, 1.1, 2.0) # this could petentially return more then 1 roi
+
+        if len(roi)>1:
+            roi = self.selectROI(roi)
+
+
         self.tracker = cv2.TrackerKCF_create()
         self.tracker.init(self.frame, roi)
 
@@ -108,6 +123,13 @@ class TrackerTesting(ImageProcessor):
         cv2.rectangle(self.frame, pt1, pt2, (0, 255, 0), 2)
         cv2.imshow(self.frame_name, self.frame)
         cv2.waitKey(33)
+
+    def selectROI(self, roi):
+        # option 1: maybe just set bounds
+        # option 2: use dominant colour -> implimentation looks kinda complicated/ computationally intensive 
+        # option 3: always return first roi 
+        return roi[0]
+
 
 
 if __name__ == '__main__':
