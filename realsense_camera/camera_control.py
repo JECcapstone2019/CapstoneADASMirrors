@@ -272,13 +272,13 @@ class CameraMultiProcessSimulation(CameraMultiProcess):
             if self.next_image == None:
                 self.next_image = np.load(self.data_dict[self.count])
 
-    def __init__(self, path_simulationFolder, i_startTimems , multiProc_queue, frameRate=30, frameSize=(640, 480),
+    def __init__(self, path_simulationFolder, i_startTime , multiProc_queue, frameRate=30, frameSize=(640, 480),
                  *args, **kwargs):
         CameraMultiProcess.__init__(multiProc_queue=multiProc_queue, frameRate=frameRate, frameSize=frameSize,
                                     *args, **kwargs)
         self.sim_folder = path_simulationFolder
 
-        self.start_time = i_startTimems
+        self.start_time = i_startTime
         self.sleep_times = {}
         self.image_timestamps = {}
         self.image_paths = {}

@@ -88,6 +88,7 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         ## Simulation Functions ##
         self.simulationSelectFolder.pressed.connect(self.onSelectSimulationFolder)
         self.simulationStartSavingNew.toggled.connect(self.onSimulationCheckboxToggled)
+        self.simulationRunSimulation.toggled.connect(self.onSimulationRunToggled)
 
         ## Menu Bar Functions ##
         self.actionHide_Options.triggered.connect(self.onHideRunOptions)
@@ -95,6 +96,10 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
 
     def closeApplication(self):
         pass
+
+    def enableWidgetArray(self, arr_widgets, enable=True):
+        for widget in arr_widgets:
+            widget.setEnabled(enable)
 
     def hideWidgetArray(self, arr_widgets, show=False):
         for widget in arr_widgets:
@@ -247,6 +252,35 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
             self.stopSavingSimulation.emit()
         self.makeSimulationStartAvailable()
 
+    def onSimulationRunToggled(self, checked):
+        if checked:
+            start_time = round(time.time() * 1000) + 10 # TODO: Fix
+            ## Startup Camera Simulation
+            self.gui_camera_queue = multiprocessing.Queue()
+            self.startImageViewer(imageQueue=self.gui_camera_queue)
+            self.camera_process = camera_control.CameraMultiProcessSimulation(path_simulationFolder=self.simulation_folder_path,
+                                                                              i_startTime=start_time,
+                                                                              multiProc_queue=self.gui_camera_queue)
+            ## startup Lidar Simulation
+            self.gui_lidar_data_queue = multiprocessing.Queue()
+            self.startLidarReader(dataQueue=self.gui_lidar_data_queue)
+            self.lidar_process = lidar_control.LidarMultiProcessSimulation(path_simulationFolder=self.simulation_folder_path,
+                                                                           dataQueue=self.gui_lidar_data_queue,
+                                                                           i_startTime=start_time)
+
+            self.camera_process.start()
+            self.lidar_process.start()
+        else:
+            # Stop Camera
+            self.camera_process.kill()
+            self.stopImageViewer()
+
+            # Stop Lidar
+            self.lidar_process.kill()
+            self.stopLidarReader()
+
+        self.enableWidgtsOnSimulation(enable=not(checked))
+
     # Used to check if we are able to startup a simulation viewing
     def makeSimulationStartAvailable(self):
         if self.cameraEnableCheckBox.isChecked() or self.lidarEnableCheckBox.isChecked() or \
@@ -255,6 +289,11 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         else:
             enable_sim_start = True
         self.simulationRunSimulation.setEnabled(enable_sim_start)
+
+    def enableWidgtsOnSimulation(self, enable):
+        self.enableWidgetArray(arr_widgets=self.lidar_widgets, enable=enable)
+        self.enableWidgetArray(arr_widgets=self.lidar_reader_widgets, enable=enable)
+        self.enableWidgetArray(arr_widgets=self.camera_widgets, enable=enable)
 
 
 def run_gui(lidar, camera, dev):
