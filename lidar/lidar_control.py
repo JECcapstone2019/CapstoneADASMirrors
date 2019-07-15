@@ -239,11 +239,11 @@ class LidarMultiproccess(Process):
 
 
 class LidarMultiProcessSimulation(LidarMultiproccess):
-    def __init__(self, path_simulationFolder, i_startTimems, i_leewayms, dataQueue, *args, **kwargs):
+    def __init__(self, path_simulationFolder, dataQueue, i_startTime, i_leewayms=2, *args, **kwargs):
         LidarMultiproccess.__init__(dataQueue, None, None, *args, *kwargs)
         self.sim_folder = path_simulationFolder
 
-        self.start_time = i_startTimems
+        self.start_time = i_startTime
         self.sleep_times = {}
         self.data_packs = {}
 
