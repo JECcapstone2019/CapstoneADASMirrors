@@ -32,7 +32,7 @@ class VirtualStream:
 
 
 
-testData = true
+testData = True
 
 # get video source
 def getVideo():
@@ -68,6 +68,7 @@ while True:
 
     if roi == None: # initilize roi
         roi = cv2.selectROI("Frame", frame, fromCenter = False, showCrosshair = True)
+        print(roi)
         tracker = cv2.TrackerKCF_create()
         test = tracker.init(frame, roi)
         print('roi initilize correctly:',test)
