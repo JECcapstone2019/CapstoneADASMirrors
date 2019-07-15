@@ -147,6 +147,7 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
             self.lidar_process.kill()
             self.stopLidarReader()
             print("Lidar Disabled")
+        self.makeSimulationStartAvailable()
 
     def onLidarGetDistance(self):
         self.gui_lidar_cmd_queue.put(0)
@@ -202,6 +203,7 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
             self.camera_process.kill()
             self.stopImageViewer()
             print("Camera Disabled")
+        self.makeSimulationStartAvailable()
 
     ## Car Detection Functions #########################################################################################
     def onCarDetectionEnabled(self, checked):
@@ -235,6 +237,7 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         dialog.setFileMode(dialog.Directory)
         self.simulation_folder_path = dialog.getExistingDirectory(options=QtWidgets.QFileDialog.DontUseNativeDialog)
         self.simulationFolderSelectedTextEdit.setText(self.simulation_folder_path)
+        self.makeSimulationStartAvailable()
 
     def onSimulationCheckboxToggled(self, checked):
         if checked:
@@ -242,6 +245,16 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
             self.startSavingSimulation.emit(folder_path)
         else:
             self.stopSavingSimulation.emit()
+        self.makeSimulationStartAvailable()
+
+    # Used to check if we are able to startup a simulation viewing
+    def makeSimulationStartAvailable(self):
+        if self.cameraEnableCheckBox.isChecked() or self.lidarEnableCheckBox.isChecked() or \
+                self.simulationStartSavingNew.isChecked() or (self.simulation_folder_path == ''):
+            enable_sim_start = False
+        else:
+            enable_sim_start = True
+        self.simulationRunSimulation.setEnabled(enable_sim_start)
 
 
 def run_gui(lidar, camera, dev):
