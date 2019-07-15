@@ -387,11 +387,11 @@ void loop() {
         delay(REFRESH_DELAY);
     }
     // Timed out without grabbing a full message
-    if(ack_sent == false){
+    if((ack_sent == false) & (data_received)){
+        // Clear the buffer
+        emptySerialBuffer();
         sendAckMessage(ACK_TIMEOUT_ERROR);
     }
-    // Clear the buffer
-    emptySerialBuffer();
     // Wait a bit before checking again
     delay(REFRESH_DELAY);
 }
