@@ -5,6 +5,8 @@ from tools.register_map import BitRegisterMap
 from arduino import arduino_defs as defs
 from arduino import arduino_control
 from multiprocessing import Process
+import os
+import csv
 
 
 # Base control class
@@ -249,29 +251,27 @@ class LidarMultiProcessSimulation(LidarMultiproccess):
         self.wait_time = (float(self.leeway_ms)/1000.0)/4.0
         self.count = 0
         self.last_data_sent = None
-
-    def connect(self):
-        pass
+        self.parseSimulationFile()
+        self.ms_conversion = 0.001
 
     def parseSimulationFile(self):
-        # TODO: Parse file to get time differences and stuff
-        pass
+        file_path = os.path.join(self.sim_folder, 'lidar_data.csv')
+        with open(file_path, 'r') as simFile:
+            reader = csv.reader(simFile)
+            last_time = 0
+            for row in reader:
+                if last_time == 0:
+                    last_time = row[1]
+                self.sleep_times[row[0]] = row[3] - last_time
+                self.data_packs[row[0]] = (row[1], row[2], row[3])
 
     def run(self):
-        self.connect()
         self.count = 0
-        self.last_data_sent = self.start_time
+        time.sleep(self.start_time - self.getTime())
         while not self.abort:
-            while not self.checkIfReady():
-                time.sleep(self.wait_time)
             self.sendData()
             self.count += 1
-
-    def checkIfReady(self):
-        # Check if within 2ms
-        if abs(self.getTime() - self.last_data_sent) < self.leeway_ms:
-            return True
-        return False
+            time.sleep(self.ms_conversion * self.sleep_times[self.count])
 
     def sendData(self):
         self.data_queue.put(self.data_packs[self.count])
