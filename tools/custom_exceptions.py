@@ -65,3 +65,9 @@ class Sequence_Count_Error(Exception):
     def __init__(self, countExpected, countGiven):
         # TODO: Add a custom message for this
         pass
+
+class Incorrect_Header_Length(Exception):
+    pass
+
+class Incorrect_data_Length(Exception):
+    pass

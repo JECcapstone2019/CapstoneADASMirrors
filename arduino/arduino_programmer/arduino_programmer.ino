@@ -41,7 +41,6 @@ const int CMD_LIDAR_VELOCITY = 0x08;
 const int COMPLETE_NO_ERROR = 0x00;
 const int COMPLETE_UNRECOGNIZED_CMD = 0x01;
 const int COMPLETE_NO_LIDAR_READ = 0x02;
-const int COMPLETE_LIDAR_READ_DATA = 0x03;
 const int COMPLETE_CANT_SET_LIDAR = 0x04;
 const int COMPLETE_WRONG_CMD_LENGTH = 0x05;
 const int COMPLETE_I2C_READ_ERROR = 0x06;
@@ -241,7 +240,7 @@ void cmd_lidarGetDist(){
         sendCompletedMessage(COMPLETE_NO_LIDAR_READ, 1, EMPTY);
      //Serial.println("> nack");
    }else{
-        sendCompletedMessage(COMPLETE_LIDAR_READ_DATA, 3, distanceArray);
+        sendCompletedMessage(COMPLETE_NO_ERROR, 3, distanceArray);
    }
 
 }
