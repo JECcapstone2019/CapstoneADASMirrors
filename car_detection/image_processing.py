@@ -50,6 +50,7 @@ class ImageProcessor:
             else:
                 self.runCarDetection()
 
+    # dont think we will need this since we are using haar detection on each frame
     def runTracking(self):
         # update tracker
         self.frame = self.getFrame()
