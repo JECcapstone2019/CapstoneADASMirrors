@@ -1,12 +1,16 @@
+import multiprocessing
+import os
+import sys
+import time
+from tools import time_stamping
+
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import pyqtSlot, pyqtSignal
 from PyQt5.QtGui import QImage, QPixmap, QPainter, QPen, QColor
-from gui.qt_designer_files import main_gui_ui, viewer_thread, lidar_reader_thread, car_detection_thread
-import sys
-import os
-import time
-import multiprocessing
-from tools import time_stamping
+
+from gui.qt_designer_files import main_gui_ui
+from gui.qt_reader_threads import lidar_reader_thread, viewer_thread, car_detection_thread
+
 from lidar import lidar_control
 from realsense_camera import camera_control
 

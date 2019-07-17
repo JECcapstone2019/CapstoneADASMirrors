@@ -28,6 +28,7 @@ class ArduinoControl:
         return self.serial_comms.isOpen()
 
     def connect(self):
+        connected = False
         if self.port is 'auto':
             for port in defs.COMMON_PORTS:
                 try:
@@ -86,20 +87,13 @@ class ArduinoControl:
         # Check to see if we have a msg header
         header, time_remaining = self._waitForBytes(numBytes=defs.LEN_MSG_HEADER, timeout=defs.TIMEOUT)
         # Should have the header lets check it
-        if not(header[defs.IND_HEADER_ID] is defs.HEADER_ID):
-            raise custom_exceptions.Packet_Header_Error(byteReceived=header[defs.HEADER_ID],
-                                                        byteDefault=defs.HEADER_ID)
+        self._checkMsgHeader(msgHeader=header)
+
         # Now we have the header, lets check to see if we have the full message
         msg_size = header[defs.IND_SIZE]
         message_data, time_remaining = self._waitForBytes(numBytes=msg_size, timeout=time_remaining)
-        if not(message_data[defs.IND_FOOTER] is defs.FOOTER_ID):
-            raise custom_exceptions.Packet_Footer_Error(byteReceived=message_data[defs.IND_FOOTER],
-                                                        byteDefault=defs.FOOTER_ID)
-        # Check to make sure that there are the correct number of data bytes in the message considering the
-        # Cmd ID
-        if not(len(message_data) == msg_size):
-            raise custom_exceptions.Packet_Data_Error(byteReceived=message_data,
-                                                      byteDefault=defs.DATA_LENGTHS[header[defs.IND_SIZE]])
+        self._checkMsgData(msgData=message_data, i_msgSize=msg_size)
+
         # wait a little bit between each serial operation
         return header + message_data
 
@@ -110,13 +104,28 @@ class ArduinoControl:
             raise custom_exceptions.Negative_Bit_value
         return data
 
+    def _checkMsgHeader(self, msgHeader):
+        if len(msgHeader) < defs.LEN_MSG_HEADER:
+            raise custom_exceptions.Incorrect_Header_Length
+        if not(msgHeader[defs.IND_HEADER_ID] is defs.HEADER_ID):
+            raise custom_exceptions.Packet_Header_Error(byteReceived=msgHeader[defs.HEADER_ID],
+                                                        byteDefault=defs.HEADER_ID)
+
+    def _checkMsgData(self, msgData, i_msgSize):
+        if len(msgData) < defs.LEN_MSG_FOOTER + i_msgSize:
+            raise custom_exceptions.Incorrect_data_Length
+        if not(msgData[defs.IND_FOOTER] is defs.FOOTER_ID):
+            raise custom_exceptions.Packet_Footer_Error(byteReceived=msgData[defs.IND_FOOTER],
+                                                        byteDefault=defs.FOOTER_ID)
+
     def _checkAckMsg(self, ack_msg):
-        # TODO: finish
-        pass
+        if ack_msg[defs.IND_RETURN_CODE] != defs.ACK_RETURN_CODES[defs.ACK_NO_ERROR]:
+            pass
+
 
     def _checkCompletedMsg(self, completed_msg):
-        # TODO: Finish
-        pass
+        if completed_msg[defs.IND_RETURN_CODE] != defs.COMP_RETURN_CODES[defs.COMPLETE_NO_ERROR]:
+            pass
 
     def _getSequenceCount(self):
         self.sequence_count = (self.sequence_count + 1) & defs.SEQUENCE_COUNT_MAX
