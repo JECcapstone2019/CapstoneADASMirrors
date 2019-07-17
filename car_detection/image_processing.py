@@ -22,7 +22,6 @@ class ImageProcessor:
         self.cascade_src = 'cars.xml'
         self.car_cascade = cv2.CascadeClassifier(self.cascade_src)
 
-
     # Grabs a frame for the image processor to use
     def getFrame(self):
         try:

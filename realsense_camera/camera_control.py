@@ -243,6 +243,29 @@ class CameraMultiProcess(Process):
     def kill(self):
         self.alive = False
 
+class CameraMultiProcess_CarDetection(CameraMultiProcess):
+    def __init__(self, carDetectionQueue, *args, **kwargs):
+        CameraMultiProcess.__init__(*args, **kwargs)
+        self.car_detection_queue = carDetectionQueue
+
+    def run(self):
+        self.connect()
+        while self.alive:
+            # use the old image if we are missing one of the counts
+            processing_time = 0
+            try:
+                frames = self.camera.getFrames()
+                time_stamp = round(time.time() * 1000)
+                color_frame = frames.get_color_frame()
+                image = np.asanyarray(color_frame.get_data())
+                self.image_queue.put((image, time_stamp))
+                self.car_detection_queue.put((cv2.cvtColor(image, cv2.COLOR_BGR2GRAY), time_stamp))
+                processing_time = time_stamp - round(time.time() * 1000)
+            except:
+                continue
+            time.sleep(max(0.0, self.frame_sleep - processing_time))
+        print("Image Putter Done")
+
 
 class CameraMultiProcessSimulation(CameraMultiProcess):
 

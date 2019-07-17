@@ -64,6 +64,7 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         self.camera_process = None
 
         self.car_detection_roi_thread = None
+        self.car_detection_camera_queue = None
         self.car_detection_roi_queue = None
         self.car_detection_detected = False
         self.car_detection_roi = [(-1, -1), (-1, -1)]
@@ -203,12 +204,18 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
     ## Camera Functions ################################################################################################
     def onCameraEnabled(self, checked):
         if checked:
+            self.carDetectionEnableCheckBox.setEnabled(False)
             self.gui_camera_queue = multiprocessing.Queue()
             self.startImageViewer(imageQueue=self.gui_camera_queue)
-            self.camera_process = camera_control.CameraMultiProcess(multiProc_queue=self.gui_camera_queue)
+            if self.carDetectionEnableCheckBox.isChecked():
+                self.camera_process = camera_control.CameraMultiProcess_CarDetection(carDetectionQueue=self.car_detection_camera_queue,
+                                                                                     multiProc_queue=self.gui_camera_queue)
+            else:
+                self.camera_process = camera_control.CameraMultiProcess(multiProc_queue=self.gui_camera_queue)
             self.camera_process.start()
             print("Camera Enabled")
         else:
+            self.carDetectionEnableCheckBox.setEnabled(True)
             self.camera_process.kill()
             self.stopImageViewer()
             print("Camera Disabled")
@@ -226,6 +233,7 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
 
     def startCarDetection(self):
         self.car_detection_roi_queue = multiprocessing.Queue()
+        self.car_detection_camera_queue = multiprocessing.Queue()
         self.car_detection_roi_thread = car_detection_thread.CarDetectionThread(roiQueue=self.car_detection_roi_queue)
         self.car_detection_roi_thread.update_roi.connect(self.onROIUpdated)
         self.car_detection_roi_thread.start()
