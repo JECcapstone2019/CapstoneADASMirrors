@@ -3,10 +3,11 @@ from tools import image_tools
 import multiprocessing
 import queue
 import time
+import os
 
 class ImageProcessor(multiprocessing.Process):
     def __init__(self, imageQueue, roiQueue, *args, **kwargs):
-        multiprocessing.Process.__init__(*args, **kwargs)
+        multiprocessing.Process.__init__(self, *args, **kwargs)
                             # [[x1,  y1,  h1,  w1], .., [x2, y2, h2, w2]]
         self.car_position = []
         self.frame_timestamp = 0
@@ -18,18 +19,13 @@ class ImageProcessor(multiprocessing.Process):
 
         self.abort = False
 
-        self.cascade_src = 'cars.xml'
-        self.car_cascade = cv2.CascadeClassifier(self.cascade_src)
-
-    # Put the car position and a timestamp into the queue
-    def sendCarInformation(self):
-        try:
-            self.roi_queue.put((self.car_position_update_time, self.car_position), block=False)
-        except queue.Full:
-            pass
+        self.cascade_src = ''
+        self.car_cascade = None
 
     # Constant loop that processes images as they come
     def run(self):
+        self.cascade_src = os.path.join(os.getcwd(), 'car_detection\\cars.xml')
+        self.car_cascade = cv2.CascadeClassifier(self.cascade_src)
         while(not(self.abort)):
             # Check if data has been requested
             # do your image processing here
@@ -37,14 +33,17 @@ class ImageProcessor(multiprocessing.Process):
 
     def runCarDetection(self):
         try:
-            self.frame, self.frame_timestamp = self.image_queue.get(block=False)
-            self.car_positions = self.car_cascade.detectMultiScale(self.frame, 1.1, 2, 0)
-            self.sendCarInformation()
+            frame, frame_timestamp = self.image_queue.get(timeout=0.005)
+            car_positions = self.car_cascade.detectMultiScale(frame, 1.1, 2, 0)
+            try:
+                self.roi_queue.put((frame_timestamp, car_positions), timeout=0.01)
+            except queue.Full:
+                pass
         except queue.Empty:
                 pass
         time.sleep(0.001)
 
-    # will reset all nessasary flags
+    # will reset all necessary flags
     def carLost(self):
         self.car_position = []
 
