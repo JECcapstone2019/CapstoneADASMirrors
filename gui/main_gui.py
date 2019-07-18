@@ -13,6 +13,7 @@ from gui.qt_reader_threads import lidar_reader_thread, viewer_thread, car_detect
 
 from lidar import lidar_control
 from realsense_camera import camera_control
+from car_detection import image_processing
 
 
 # Short overriding class for running the application
@@ -64,10 +65,11 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         self.camera_process = None
 
         self.car_detection_roi_thread = None
+        self.car_detection_process = None
         self.car_detection_camera_queue = None
         self.car_detection_roi_queue = None
-        self.car_detection_detected = False
-        self.car_detection_roi = [(-1, -1), (-1, -1)]
+        self.car_detected = False
+        self.car_detection_roi = []
         self.car_detection_color = QColor(255, 0, 0)
 
         self.simulation_folder_path = ''
@@ -186,7 +188,7 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
     @pyqtSlot(QImage)
     def onRepaintImage(self, image):
         pixmap = QPixmap.fromImage(image)
-        if self.car_detection_detected:
+        if self.car_detected:
             # TODO: Add in when ready
             pixmap = self.paintRectangle(pixmap=pixmap)
         self.imageViewer.setPixmap(pixmap)
@@ -236,16 +238,19 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         self.car_detection_camera_queue = multiprocessing.Queue()
         self.car_detection_roi_thread = car_detection_thread.CarDetectionThread(roiQueue=self.car_detection_roi_queue)
         self.car_detection_roi_thread.update_roi.connect(self.onROIUpdated)
+        self.car_detection_process = image_processing.ImageProcessor(imageQueue=self.car_detection_camera_queue,
+                                                                     roiQueue=self.car_detection_roi_queue)
         self.car_detection_roi_thread.start()
-        #TODO: Start Car Detection Process
+        self.car_detection_process.start()
 
     def stopCarDetection(self):
         self.car_detection_roi_thread.stop()
-        # TODO: Stop Car Detection Process
+        self.car_detection_process.kill()
 
-    @pyqtSlot(int, int, int, int)
-    def onROIUpdated(self, x1, y1, x2, y2):
-        print("ROI Updated to (%i, %i) (%i, %i)" % (x1, y1, x2, y2))
+    @pyqtSlot(tuple)
+    def onROIUpdated(self, roiList):
+        for roi in roiList:
+            print("ROI Updated to (%i, %i) (%i, %i)" % (roi[0], roi[1], roi[2], roi[3]))
 
 
     ## Simulation Functions ############################################################################################

@@ -245,7 +245,7 @@ class CameraMultiProcess(Process):
 
 class CameraMultiProcess_CarDetection(CameraMultiProcess):
     def __init__(self, carDetectionQueue, *args, **kwargs):
-        CameraMultiProcess.__init__(*args, **kwargs)
+        CameraMultiProcess.__init__(self, *args, **kwargs)
         self.car_detection_queue = carDetectionQueue
 
     def run(self):
