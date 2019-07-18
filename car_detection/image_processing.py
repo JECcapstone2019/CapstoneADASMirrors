@@ -1,50 +1,42 @@
-from multiprocessing import Queue, Pipe, Process
 import cv2
 from tools import image_tools
+import multiprocessing
+import queue
+import time
 
-class ImageProcessor:
-    def __init__(self, imageQueue, dataPipe):
+class ImageProcessor(multiprocessing.Process):
+    def __init__(self, imageQueue, roiQueue, *args, **kwargs):
+        multiprocessing.Process.__init__(*args, **kwargs)
         self.car_detected = False
-        self.roi_updated = 1 # lets us know if there was enough of a change in the roi to display
+                            # x,  y,  h,  w
         self.car_position = [-1, -1, -1, -1]
+        self.frame_timestamp = 0
         self.tracker = None
-        self.frame_name = 'frame'
 
         self.threshold = 0
         self.frame = None
 
         self.image_queue = imageQueue
-        self.data_pipe = dataPipe
+        self.roi_queue = roiQueue
 
-        self.abort = 0
-        self.car_information_request = 1
+        self.abort = False
 
         self.cascade_src = 'cars.xml'
         self.car_cascade = cv2.CascadeClassifier(self.cascade_src)
 
-
-    # Grabs a frame for the image processor to use
-    def getFrame(self):
-        try:
-            return self.image_queue.get()
-        except:
-            return None
-
-    # Returns a 3 int array of car_detected, and car_position
+    # Put the car position and a timestamp into the queue
     def sendCarInformation(self):
-        self.data_pipe.send([self.car_detected, self.car_position[0], self.car_position[1]])
+        try:
+            self.roi_queue.put((self.car_position_update_time, self.car_position), block=False)
+        except queue.Full:
+            pass
 
     # Constant loop that processes images as they come
     def run(self):
-        while(True):
+        while(not(self.abort)):
             # Check if data has been requested
-            if self.data_pipe.poll():
-                data_from_main = self.data_pipe.recv()
-                if data_from_main is self.abort:
-                    return
-                elif data_from_main is self.car_information_request:
-                    self.sendCarInformation()
             # do your image processing here
+<<<<<<< HEAD
             if self.car_detected:
                 self.runTracking()
             else:
@@ -70,20 +62,34 @@ class ImageProcessor:
         else:
             # car was not found
             self.carLost()
+=======
+            self.runCarDetection()
+            self.sendCarInformation()
+>>>>>>> c820abe3d0b29d6044a1817974b2a95768557bec
 
     def runCarDetection(self):
-        pass
+        try:
+            self.frame, self.frame_timestamp = self.image_queue.get(block=False)
+            # DO CAR DETECTION HERE
+            #
+            #
+        except queue.Empty:
+            pass
+        time.sleep(0.001)
 
     # will reset all nessasary flags
     def carLost(self):
         self.car_position = [-1, -1, -1, -1]
         self.car_detected = False
-        self.roi_updated = 1
+
+    def kill(self):
+        self.abort = True
 
 class TrackerTesting(ImageProcessor):
     def __init__(self, folderPath='C:\\Users\\e_q\\Documents\\sourcetree\\main_program\\car_detection\\saved_images_2019_6_13-17_49_52\\'):
         ImageProcessor.__init__(self, imageQueue=None, dataPipe=None)
         self.virtual_stream = image_tools.VirtualStream(numpyFolder=folderPath)
+        self.frame_name = 'frame'
 
     def run(self):
         while True:
