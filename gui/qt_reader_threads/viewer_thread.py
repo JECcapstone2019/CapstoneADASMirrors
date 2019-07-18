@@ -25,7 +25,7 @@ class ImageViewingThread(QThread):
     def grabFrame(self):
         # TODO: fix
         try:
-            return self.image_queue.get(block=False)
+            return self.image_queue.get(timeout=0.01)
         except:
             return (None, None)
 

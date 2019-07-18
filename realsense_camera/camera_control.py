@@ -211,6 +211,7 @@ class CameraMultiProcess(Process):
         self.frame_rate = frameRate
         self.frame_size = frameSize
         self.frame_sleep = 1.0/float(frameRate)
+        self.frame_sleep_ms = round(self.frame_sleep * 1000)
         self.camera = None
         self.alive = True
         self.daemon = True
@@ -234,7 +235,7 @@ class CameraMultiProcess(Process):
                 time_stamp = round(time.time() * 1000)
                 color_frame = frames.get_color_frame()
                 image = np.asanyarray(color_frame.get_data())
-                self.image_queue.put((image, time_stamp))
+                self.image_queue.put((image, time_stamp), timeout=self.frame_sleep)
             except:
                 continue
             time.sleep(self.frame_sleep)
@@ -258,12 +259,12 @@ class CameraMultiProcess_CarDetection(CameraMultiProcess):
                 time_stamp = round(time.time() * 1000)
                 color_frame = frames.get_color_frame()
                 image = np.asanyarray(color_frame.get_data())
-                self.image_queue.put((image, time_stamp))
+                self.image_queue.put((image, time_stamp), timeout=self.frame_sleep)
                 self.car_detection_queue.put((cv2.cvtColor(image, cv2.COLOR_BGR2GRAY), time_stamp))
-                processing_time = time_stamp - round(time.time() * 1000)
+                processing_time = round((time.time() * 1000)) - time_stamp
             except:
                 continue
-            time.sleep(max(0.0, self.frame_sleep - processing_time))
+            time.sleep(max(0.0, self.frame_sleep_ms - processing_time) * 0.001)
         print("Image Putter Done")
 
 

@@ -248,8 +248,8 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         self.car_detection_process.kill()
 
     @pyqtSlot(tuple)
-    def onROIUpdated(self, roiList):
-        for roi in roiList:
+    def onROIUpdated(self, roiData):
+        for roi in roiData[1]:
             print("ROI Updated to (%i, %i) (%i, %i)" % (roi[0], roi[1], roi[2], roi[3]))
 
 
