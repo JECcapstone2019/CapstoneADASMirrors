@@ -6,7 +6,7 @@ import os
 import numpy as np
 
 class ImageViewingThread(QThread):
-    update_image = pyqtSignal(QImage)
+    update_image = pyqtSignal(QImage, int, int)
 
     SAVE_FILE_NAME = 'image_data.csv'
 
@@ -41,7 +41,7 @@ class ImageViewingThread(QThread):
                 # parent_size = self.parent_widget.size()
                 # self.update_image.emit(convertToQtFormat.scaled(parent_size.height(), parent_size.width(),
                 #                                                 Qt.KeepAspectRatio))
-                self.update_image.emit(convertToQtFormat.scaled(h, w, Qt.KeepAspectRatio))
+                self.update_image.emit(convertToQtFormat, w, h)
                 if self.save_file:
                     np.save(os.path.join(self.save_folder, 'image_%i.npy' % self.count), rgbImage)
                     self.csv_writer.writerow([self.count, image_timestamp])

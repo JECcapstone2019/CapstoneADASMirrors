@@ -6,7 +6,7 @@ from tools import time_stamping
 import csv
 
 from PyQt5 import QtWidgets
-from PyQt5.QtCore import pyqtSlot, pyqtSignal
+from PyQt5.QtCore import pyqtSlot, pyqtSignal, Qt
 from PyQt5.QtGui import QImage, QPixmap, QPainter, QPen, QColor
 
 from gui.qt_designer_files import main_gui_ui
@@ -188,12 +188,12 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         self.image_viewer.stop()
 
     # Slot for the image thread to update the main image window
-    @pyqtSlot(QImage)
-    def onRepaintImage(self, image):
+    @pyqtSlot(QImage, int, int)
+    def onRepaintImage(self, image, h, w):
         pixmap = QPixmap.fromImage(image)
         if self.car_detected:
-            # TODO: Add in when ready
             pixmap = self.paintRectangles(pixmap=pixmap)
+        image.scaled(h, w, Qt.KeepAspectRatio)
         self.imageViewer.setPixmap(pixmap)
 
     def paintRectangles(self, pixmap):
