@@ -179,10 +179,10 @@ void cmd_lidarGetDist(){
      //Serial.println("> nack");
    }else{
 
-        //sendCompletedMessage(COMPLETE_NO_ERROR, 3, distanceArray);
+        sendCompletedMessage(COMPLETE_NO_ERROR, 3, distanceArray);
 
-        bigSendThing = [distanceArray[0],distanceArray[1], byteArrayT[0],byteArrayT[1],byteArrayT[2],byteArrayT[3]];
-        sendCompletedMessage(COMPLETE_NO_ERROR, 7, bigSendThing);
+        //bigSendThing = [distanceArray[0],distanceArray[1], byteArrayT[0],byteArrayT[1],byteArrayT[2],byteArrayT[3]];
+        //sendCompletedMessage(COMPLETE_NO_ERROR, 7, bigSendThing);
 
    }
 
