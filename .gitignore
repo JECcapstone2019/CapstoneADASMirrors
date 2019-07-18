@@ -3,4 +3,5 @@ saved_images*
 install_log*
 .idea
 /virtenv
+Simulation*
 *.pyc

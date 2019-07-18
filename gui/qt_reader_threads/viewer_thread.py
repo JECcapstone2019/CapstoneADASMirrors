@@ -38,9 +38,10 @@ class ImageViewingThread(QThread):
                 h, w, ch = rgbImage.shape
                 bytesPerLine = ch * w
                 convertToQtFormat = QImage(rgbImage.data, w, h, bytesPerLine, QImage.Format_RGB888)
-                parent_size = self.parent_widget.size()
-                self.update_image.emit(convertToQtFormat.scaled(parent_size.height(), parent_size.width(),
-                                                                Qt.KeepAspectRatio))
+                # parent_size = self.parent_widget.size()
+                # self.update_image.emit(convertToQtFormat.scaled(parent_size.height(), parent_size.width(),
+                #                                                 Qt.KeepAspectRatio))
+                self.update_image.emit(convertToQtFormat.scaled(h, w, Qt.KeepAspectRatio))
                 if self.save_file:
                     np.save(os.path.join(self.save_folder, 'image_%i.npy' % self.count), rgbImage)
                     self.csv_writer.writerow([self.count, image_timestamp])

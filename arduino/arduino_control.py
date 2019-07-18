@@ -112,19 +112,19 @@ class ArduinoControl:
                                                         byteDefault=defs.HEADER_ID)
 
     def _checkMsgData(self, msgData, i_msgSize):
-        if len(msgData) < defs.LEN_MSG_FOOTER + i_msgSize:
+        if len(msgData) < i_msgSize:
             raise custom_exceptions.Incorrect_data_Length
         if not(msgData[defs.IND_FOOTER] is defs.FOOTER_ID):
             raise custom_exceptions.Packet_Footer_Error(byteReceived=msgData[defs.IND_FOOTER],
                                                         byteDefault=defs.FOOTER_ID)
 
     def _checkAckMsg(self, ack_msg):
-        if ack_msg[defs.IND_RETURN_CODE] != defs.ACK_RETURN_CODES[defs.ACK_NO_ERROR]:
+        if ack_msg[defs.IND_RETURN_CODE] != 0:
             pass
 
 
     def _checkCompletedMsg(self, completed_msg):
-        if completed_msg[defs.IND_RETURN_CODE] != defs.COMP_RETURN_CODES[defs.COMPLETE_NO_ERROR]:
+        if completed_msg[defs.IND_RETURN_CODE] != 0:
             pass
 
     def _getSequenceCount(self):
@@ -150,16 +150,13 @@ class ArduinoControl:
 
 
 if __name__ == '__main__':
-    a_control = ArduinoControl(port='COM5') #port='/dev/cu.usbmodem14101'
+    a_control = ArduinoControl(port='auto') #port='/dev/cu.usbmodem14101'
     a_control.connect()
     time.sleep(2)
-    print(list(a_control.sendCommand(0x05, [0x00])))
+    print(list(a_control.sendCommand(0x03, [0x00, 0x00])))
+    print(list(a_control.sendCommand(0x04, [0x00])))
+    print(list(a_control.sendCommand(0x04, [0x00])))
+    for i in range(100):
+        print(list(a_control.sendCommand(0x04, [0x00])))
 
-    print(list(a_control.sendCommand(0x03, [0x00])))
-
-    print(list(a_control.sendCommand(0x05, [0x00])))
-    print(list(a_control.sendCommand(0x05, [0x00])))
-    print(list(a_control.sendCommand(0x05, [0x00])))
-    print(list(a_control.sendCommand(0x05, [0x00])))
-    print(list(a_control.sendCommand(0x05, [0x00])))
     a_control.disconnect()

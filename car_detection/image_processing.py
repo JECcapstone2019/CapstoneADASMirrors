@@ -7,13 +7,10 @@ import time
 class ImageProcessor(multiprocessing.Process):
     def __init__(self, imageQueue, roiQueue, *args, **kwargs):
         multiprocessing.Process.__init__(*args, **kwargs)
-        self.car_detected = False
-                            # x,  y,  h,  w
-        self.car_position = [-1, -1, -1, -1]
+                            # [[x1,  y1,  h1,  w1], .., [x2, y2, h2, w2]]
+        self.car_position = []
         self.frame_timestamp = 0
-        self.tracker = None
 
-        self.threshold = 0
         self.frame = None
 
         self.image_queue = imageQueue
@@ -37,22 +34,19 @@ class ImageProcessor(multiprocessing.Process):
             # Check if data has been requested
             # do your image processing here
             self.runCarDetection()
-            self.sendCarInformation()
 
     def runCarDetection(self):
         try:
             self.frame, self.frame_timestamp = self.image_queue.get(block=False)
-            # DO CAR DETECTION HERE
-            #
-            #
+            self.car_positions = self.car_cascade.detectMultiScale(self.frame, 1.1, 2, 0)
+            self.sendCarInformation()
         except queue.Empty:
-            pass
+                pass
         time.sleep(0.001)
 
     # will reset all nessasary flags
     def carLost(self):
-        self.car_position = [-1, -1, -1, -1]
-        self.car_detected = False
+        self.car_position = []
 
     def kill(self):
         self.abort = True

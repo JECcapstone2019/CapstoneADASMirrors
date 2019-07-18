@@ -46,7 +46,7 @@ const int COMPLETE_WRONG_CMD_LENGTH = 0x05;
 const int COMPLETE_I2C_READ_ERROR = 0x06;
 const int COMPLETE_I2C_TIMEOUT = 0x07;
 const int COMPLETE_LIDAR_INVALID_CONFIG = 0x08;
-const int COMPLETE_I2C_WRITE_ERROR = 0x08;
+const int COMPLETE_I2C_WRITE_ERROR = 0x09;
 const int COMPLETE_UNKNOWN_ERROR = 0xff;
 
 // Ack Errors
@@ -106,97 +106,27 @@ void cmd_nop(){
     operating manual for instructions.
 ------------------------------------------------------------------------------*/
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void cmd_initLIDAR(int data_footer_size, byte *message_data_footer){
-    uint8_t sigCountMax;
-    uint8_t acqConfigReg;
-    uint8_t refCountMax;
-    uint8_t thresholdBypass;
+void cmd_initLIDAR(){
 
-    int configuration;
+  //Serial.begin(9600); //Initialize serial connect for display purposes
+  Wire.begin();
 
-    if(data_footer_size < (LEN_MSG_FOOTER + 1)){
-        // No config data give, use default
-        configuration = 0;
-    }
-    else if(data_footer_size == (LEN_MSG_FOOTER + 1)){
-        // Grab the config from the message
-        configuration = (int) message_data_footer[0];
-    }
-    else{
-        // Too much data, something must be wrong with message
-        sendCompletedMessage(COMPLETE_WRONG_CMD_LENGTH, 1, EMPTY);
-        return;
-    }
-    switch (configuration){
-        case 0: // Default mode, balanced performance
-            sigCountMax     = 0x80; // Default
-            acqConfigReg    = 0x08; // Default
-            refCountMax     = 0x05; // Default
-            thresholdBypass = 0x00; // Default
-            break;
+  //Serial.print(LIDAR_I2C_ADDRESS);
+  //delay(5000);
+  int checkA = I2CWriteByte(0x00,0x00,LIDAR_I2C_ADDRESS); // Reset
 
-        case 1: // Short range, high speed
-            sigCountMax     = 0x1d;
-            acqConfigReg    = 0x08; // Default
-            refCountMax     = 0x03;
-            thresholdBypass = 0x00; // Default
-            break;
+  //SETUP DEFAULT CONFIG -
+  checkA = I2CWriteByte(0x02,0x80,LIDAR_I2C_ADDRESS); // Default
+  int checkB = I2CWriteByte(0x04,0x08,LIDAR_I2C_ADDRESS); // Default
+  int checkC = I2CWriteByte(0x1c,0x00,LIDAR_I2C_ADDRESS); // Default
 
-        case 2: // Default range, higher speed short range
-            sigCountMax     = 0x80; // Default
-            acqConfigReg    = 0x00;
-            refCountMax     = 0x03;
-            thresholdBypass = 0x00; // Default
-            break;
 
-        case 3: // Maximum range
-            sigCountMax     = 0xff;
-            acqConfigReg    = 0x08; // Default
-            refCountMax     = 0x05; // Default
-            thresholdBypass = 0x00; // Default
-            break;
-
-        case 4: // High sensitivity detection, high erroneous measurements
-            sigCountMax     = 0x80; // Default
-            acqConfigReg    = 0x08; // Default
-            refCountMax     = 0x05; // Default
-            thresholdBypass = 0x80;
-            break;
-
-        case 5: // Low sensitivity detection, low erroneous measurements
-            sigCountMax     = 0x80; // Default
-            acqConfigReg    = 0x08; // Default
-            refCountMax     = 0x05; // Default
-            thresholdBypass = 0xb0;
-            break;
-
-        case 6: // Short range, high speed, higher error
-            sigCountMax     = 0x04;
-            acqConfigReg    = 0x01; // turn off short_sig, mode pin = status output mode
-            refCountMax     = 0x03;
-            thresholdBypass = 0x00;
-            break;
-        default: // Invalid Config
-            sendCompletedMessage(COMPLETE_LIDAR_INVALID_CONFIG, 1, EMPTY);
-            return;
-    }
-    int write_checker = 1;
-    write_checker = write_checker & I2CWriteByte(0x02, &sigCountMax    , LIDAR_I2C_ADDRESS);
-    write_checker = write_checker & I2CWriteByte(0x04, &acqConfigReg   , LIDAR_I2C_ADDRESS);
-    write_checker = write_checker & I2CWriteByte(0x12, &refCountMax    , LIDAR_I2C_ADDRESS);
-    write_checker = write_checker & I2CWriteByte(0x1c, &thresholdBypass, LIDAR_I2C_ADDRESS);
-    if(write_checker == 1){
-        // All Writes Succeeded with no error
-        sendCompletedMessage(COMPLETE_NO_ERROR, 1, EMPTY);
-        return;
-    }
-    else{
-        // I2C Write Error
-        sendCompletedMessage(COMPLETE_I2C_WRITE_ERROR, 1, EMPTY);
-        return;
-    }
-    sendCompletedMessage(COMPLETE_UNKNOWN_ERROR, 1, EMPTY);
-    return;
+  int checkError = checkA*checkB*checkC;
+  if (checkError == 0) {
+    sendCompletedMessage(COMPLETE_NO_ERROR, 1, EMPTY);
+   }else{
+    sendCompletedMessage(COMPLETE_CANT_SET_LIDAR, 1, EMPTY);
+   }
 }
 
 void cmd_lidarGetDist(){
@@ -204,7 +134,8 @@ void cmd_lidarGetDist(){
   int dist;
   byte recByte;
 
-  I2CWriteByte(0x00,0x04,LIDAR_I2C_ADDRESS);
+  int checkA = I2CWriteByte(0x00,0x04,LIDAR_I2C_ADDRESS); // Default
+  // I2CWriteByte(0x00,0x04,LIDAR_I2C_ADDRESS);
   byte distanceArray[2] = {0x01, 0xff};
   byte myAddress = 0x8f; // location of distance information **NOTE THERE IS A VELOCITY ONE TOO
   int numOfBytes = 2;
@@ -246,7 +177,42 @@ void cmd_lidarGetDist(){
 }
 
 void cmd_lidarGetVelocity(){
-    // TODO: Finish
+
+  int dist;
+  byte recByte;
+
+  I2CWriteByte(0x00, 0x04, LIDAR_I2C_ADDRESS);
+  byte distanceArray[2] = {0x01, 0xff};
+  byte myAddress = 0x09; // location of distance information **NOTE THERE IS A VELOCITY ONE TOO
+  int numOfBytes = 2;
+
+   Wire.beginTransmission((int)LIDAR_I2C_ADDRESS);
+   Wire.write((int)myAddress); // Set the register to be read
+
+   // A nack means the device is not responding, report the error over serial
+   int nackCatcher = Wire.endTransmission();
+   delay(1);
+
+
+   // Request the two bytes
+   Wire.requestFrom((int)LIDAR_I2C_ADDRESS, numOfBytes);
+   int i = 0;
+   if(numOfBytes <= Wire.available())
+   {
+      while(i < numOfBytes)
+      {
+        distanceArray[i] = Wire.read();
+        i++;
+      }
+   }
+   if(nackCatcher != 0)
+   {
+        sendCompletedMessage(COMPLETE_NO_LIDAR_READ, 1, EMPTY);
+     //Serial.println("> nack");
+   }else{
+        sendCompletedMessage(COMPLETE_NO_ERROR, 3, distanceArray);
+   }
+
 }
 
 const int LEN_I2C_CMD = 3; // Proper length of I2C Commands
@@ -378,7 +344,7 @@ void parseMessage(int cmd_id, int data_footer_size, byte *message_data_footer){
         cmd_nop();
     }
     else if(cmd_id == CMD_LIDAR_SETUP){
-        cmd_initLIDAR(data_footer_size, message_data_footer);
+        cmd_initLIDAR();
     }
     else if(cmd_id == CMD_LIDAR_DISTANCE){
         cmd_lidarGetDist();
