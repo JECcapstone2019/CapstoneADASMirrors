@@ -151,10 +151,10 @@ void cmd_lidarGetDist(){
    // Request the two bytes
    Wire.requestFrom((int)LIDAR_I2C_ADDRESS, numOfBytes);
    timeCur = millis();//Mark the time of LiDAR read
-   byteArray[0] = (int)((timeCur >> 24) & 0xFF) ;
-   byteArray[1] = (int)((timeCur >> 16) & 0xFF) ;
-   byteArray[2] = (int)((timeCur >> 8) & 0XFF);
-   byteArray[3] = (int)((timeCur & 0XFF));
+   byteArrayT[0] = (int)((timeCur >> 24) & 0xFF) ;
+   byteArrayT[1] = (int)((timeCur >> 16) & 0xFF) ;
+   byteArrayT[2] = (int)((timeCur >> 8) & 0XFF);
+   byteArrayT[3] = (int)((timeCur & 0XFF));
 
 
    int i = 0;
@@ -181,9 +181,8 @@ void cmd_lidarGetDist(){
 
         //sendCompletedMessage(COMPLETE_NO_ERROR, 3, distanceArray);
 
-        bigSendThing = [distanceArray[1],distanceArray[2], timeCur[]];
+        bigSendThing = [distanceArray[0],distanceArray[1], byteArrayT[0],byteArrayT[1],byteArrayT[2],byteArrayT[3]];
         sendCompletedMessage(COMPLETE_NO_ERROR, 7, bigSendThing);
-
 
    }
 
