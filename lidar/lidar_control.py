@@ -250,6 +250,7 @@ class LidarMultiProcessSimulation(LidarMultiproccess):
         self.leeway_ms = i_leewayms
         self.wait_time = (float(self.leeway_ms)/1000.0)/4.0
         self.count = 0
+        self.max_count = 0
         self.last_data_sent = i_startTime
         self.parseSimulationFile()
         self.ms_conversion = 0.001
@@ -262,16 +263,21 @@ class LidarMultiProcessSimulation(LidarMultiproccess):
             for row in reader:
                 if len(row) > 0:
                     if last_time == 0:
-                        last_time = int(row[1])
+                        last_time = int(row[3])
                     self.sleep_times[int(row[0])] = int(row[3]) - last_time
                     self.data_packs[int(row[0])] = (int(row[1]), int(row[2]), int(row[3]))
                     last_time = int(row[3])
+            self.max_count = len(self.data_packs)
 
     def run(self):
         self.count = 0
+        while ((self.start_time - (time.time() * 1000)) > 2):
+            time.sleep(0.001)
         while not self.abort:
             self.sendData()
             self.count += 1
+            if self.count >= self.max_count:
+                self.count = 0
             print(self.sleep_times[self.count])
             time.sleep(self.ms_conversion * self.sleep_times[self.count])
 

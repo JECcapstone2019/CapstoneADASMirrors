@@ -278,6 +278,7 @@ class CameraMultiProcessSimulation(CameraMultiProcess):
         def __init__(self, dataDict, imageQueue):
             threading.Thread.__init__(self)
             self.data_dict = dataDict
+            self.num_images = len(dataDict)
             self.image_queue = imageQueue
             self.daemon = True
             self.count = 0
@@ -290,6 +291,8 @@ class CameraMultiProcessSimulation(CameraMultiProcess):
                 try:
                     self.image_queue.put(self.next_image, block=False)
                     self.count += 1
+                    if self.count >= self.num_images:
+                        self.count = 0
                     self.next_image = None
                 except queue.Full:
                     pass
@@ -346,19 +349,18 @@ class CameraMultiProcessSimulation(CameraMultiProcess):
         self.worker_thread.start()
 
         self.count = 0
+        while((self.start_time - (time.time() * 1000)) > 2):
+            time.sleep(0.001)
         while self.alive:
             self.sendData()
             self.count += 1
+            if self.count >= self.max_count:
+                self.count = 0
             time.sleep(self.ms_conversion * self.sleep_times[self.count])
 
     def sendData(self):
         self.image_queue.put((self.worker_queue.get(block=True), self.image_timestamps[self.count]))
-        self.last_data_sent = self.getTime()
         self.worker_queue.task_done()
-
-    def getTime(self):
-        # gives the time in ms
-        return (round(time.time() * 1000) - self.last_data_sent)
 
 # Quick function to grab some images and save them as numpies
 def saveXImages(xImages, folderPath='', rate=1.0):
