@@ -279,7 +279,6 @@ class LidarMultiProcessSimulation(LidarMultiproccess):
             self.count += 1
             if self.count >= self.max_count:
                 self.count = 0
-            print(self.sleep_times[self.count])
             time.sleep(self.ms_conversion * self.sleep_times[self.count])
         print("Lidar Process Done")
 

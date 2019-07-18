@@ -299,13 +299,23 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
             else:
                 image_start_add = abs(difference)
                 lidar_start_add = 0
-            start_time = round(time.time() * 1000) + 100 # TODO: Fix
-            ## Startup Camera Simulation
+            start_time = round(time.time() * 1000) + 100
+
+            ## startup Camera Simulation
             self.gui_camera_queue = multiprocessing.Queue()
             self.startImageViewer(imageQueue=self.gui_camera_queue)
-            self.camera_process = camera_control.CameraMultiProcessSimulation(path_simulationFolder=self.simulation_folder_path,
-                                                                              i_startTime=start_time + image_start_add,
-                                                                              multiProc_queue=self.gui_camera_queue)
+            if not(self.car_detection_process is None):
+                self.camera_process = camera_control.CameraMultiProcessSimulationCarDetection(
+                    carDetectionQueue=self.car_detection_camera_queue,
+                    path_simulationFolder=self.simulation_folder_path,
+                    i_startTime=start_time + image_start_add,
+                    multiProc_queue=self.gui_camera_queue)
+            else:
+                self.camera_process = camera_control.CameraMultiProcessSimulation(
+                    path_simulationFolder=self.simulation_folder_path,
+                    i_startTime=start_time + image_start_add,
+                    multiProc_queue=self.gui_camera_queue)
+
             ## startup Lidar Simulation
             self.gui_lidar_data_queue = multiprocessing.Queue()
             self.startLidarReader(dataQueue=self.gui_lidar_data_queue)

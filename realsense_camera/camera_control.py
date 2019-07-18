@@ -366,6 +366,17 @@ class CameraMultiProcessSimulation(CameraMultiProcess):
         self.image_queue.put((self.worker_queue.get(block=True), self.image_timestamps[self.count]))
         self.worker_queue.task_done()
 
+class CameraMultiProcessSimulationCarDetection(CameraMultiProcessSimulation):
+    def __init__(self, carDetectionQueue, *args, **kwargs):
+        CameraMultiProcessSimulation.__init__(self, *args, **kwargs)
+        self.car_detection_queue = carDetectionQueue
+
+    def sendData(self):
+        image = self.worker_queue.get(block=True)
+        self.image_queue.put((image, self.image_timestamps[self.count]))
+        self.car_detection_queue.put((cv2.cvtColor(image, cv2.COLOR_BGR2GRAY), self.image_timestamps[self.count]))
+        self.worker_queue.task_done()
+
 
 # Quick function to grab some images and save them as numpies
 def saveXImages(xImages, folderPath='', rate=1.0):
