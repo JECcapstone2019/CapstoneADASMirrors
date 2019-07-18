@@ -280,13 +280,14 @@ class CameraMultiProcessSimulation(CameraMultiProcess):
             self.data_dict = dataDict
             self.num_images = len(dataDict)
             self.image_queue = imageQueue
+            self.alive = True
             self.daemon = True
             self.count = 0
             self.next_image = None
 
 
         def run(self):
-            while True:
+            while self.alive:
                 self.loadNextImage()
                 try:
                     self.image_queue.put(self.next_image, block=False)
@@ -301,6 +302,9 @@ class CameraMultiProcessSimulation(CameraMultiProcess):
         def loadNextImage(self):
             if self.next_image is None:
                 self.next_image = np.load(self.data_dict[self.count])
+
+        def kill(self):
+            self.alive = False
 
     def __init__(self, path_simulationFolder, i_startTime , multiProc_queue, frameRate=30, frameSize=(640, 480),
                  *args, **kwargs):
@@ -361,6 +365,7 @@ class CameraMultiProcessSimulation(CameraMultiProcess):
     def sendData(self):
         self.image_queue.put((self.worker_queue.get(block=True), self.image_timestamps[self.count]))
         self.worker_queue.task_done()
+
 
 # Quick function to grab some images and save them as numpies
 def saveXImages(xImages, folderPath='', rate=1.0):

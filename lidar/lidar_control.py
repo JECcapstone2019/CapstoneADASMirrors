@@ -176,7 +176,7 @@ class LidarMultiproccess(Process):
 
         self.lidar_type = str_lidarStrID
         self.lidar = None
-        self.abort = False
+        self.alive = True
         self.daemon = True
 
         # Streaming flags
@@ -184,7 +184,7 @@ class LidarMultiproccess(Process):
         self.streaming_velocity = False
 
     def kill(self):
-        self.abort = True
+        self.alive = False
 
     def connect(self, **kwargs):
         if self.lidar_type.lower() == 'alidar':
@@ -201,7 +201,7 @@ class LidarMultiproccess(Process):
         # connect and wait to start
         self.connect()
         print("CONNECTED")
-        while not self.abort:
+        while self.alive:
             try:
                 cmd_id = self.cmd_queue.get(block=False)
             except:
@@ -212,7 +212,7 @@ class LidarMultiproccess(Process):
                 break
             time.sleep(.001)
         # Start actually taking measurements
-        while not self.abort:
+        while self.alive:
             # Check to see if we have a new command
             try:
                 cmd_id = self.cmd_queue.get(block=False)
@@ -236,6 +236,7 @@ class LidarMultiproccess(Process):
                 self.data_queue.put((self.ID_VELOCITY, self.lidar.getVelocity(), round(time.time() * 1000)))
             time.sleep(.001)
         self.disconnect()
+        print("Lidar Process Done")
 
 
 class LidarMultiProcessSimulation(LidarMultiproccess):
@@ -273,22 +274,17 @@ class LidarMultiProcessSimulation(LidarMultiproccess):
         self.count = 0
         while ((self.start_time - (time.time() * 1000)) > 2):
             time.sleep(0.001)
-        while not self.abort:
+        while self.alive:
             self.sendData()
             self.count += 1
             if self.count >= self.max_count:
                 self.count = 0
             print(self.sleep_times[self.count])
             time.sleep(self.ms_conversion * self.sleep_times[self.count])
+        print("Lidar Process Done")
 
     def sendData(self):
         self.data_queue.put(self.data_packs[self.count])
-        self.last_data_sent = self.getTime()
-
-    def getTime(self):
-        # gives the time in ms
-        return round(time.time() * 1000) - self.last_data_sent
-
 
 
 if __name__ == '__main__':

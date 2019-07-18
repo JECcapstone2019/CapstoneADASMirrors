@@ -3,6 +3,7 @@ import os
 import sys
 import time
 from tools import time_stamping
+import csv
 
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import pyqtSlot, pyqtSignal
@@ -73,6 +74,8 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         self.car_detection_color = QColor(255, 0, 0)
 
         self.simulation_folder_path = ''
+        self.sim_image_time_start = 0
+        self.sim_lidar_time_start = 0
 
         self.connectObjectFunctions()
 
@@ -263,7 +266,20 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         dialog = QtWidgets.QFileDialog()
         dialog.setFileMode(dialog.Directory)
         self.simulation_folder_path = dialog.getExistingDirectory(options=QtWidgets.QFileDialog.DontUseNativeDialog)
-        self.simulationFolderSelectedTextEdit.setText(self.simulation_folder_path)
+        # Check if folder exists
+        if os.path.exists(self.simulation_folder_path):
+            # Check if both the csv files are in there
+            image_csv_file_path = os.path.join(self.simulation_folder_path, 'image_data.csv')
+            lidar_csv_file_path = os.path.join(self.simulation_folder_path, 'lidar_data.csv')
+            if os.path.exists(image_csv_file_path) and os.path.exists(lidar_csv_file_path):
+                # Get the time delay
+                with open(image_csv_file_path) as csvFile:
+                    csv_reader = csv.reader(csvFile)
+                    self.sim_image_time_start = int(next(csv_reader)[1])
+                with open(lidar_csv_file_path) as csvFile:
+                    csv_reader = csv.reader(csvFile)
+                    self.sim_lidar_time_start = int(next(csv_reader)[3])
+                self.simulationFolderSelectedTextEdit.setText(self.simulation_folder_path)
         self.makeSimulationStartAvailable()
 
     def onSimulationCheckboxToggled(self, checked):
@@ -276,19 +292,26 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
 
     def onSimulationRunToggled(self, checked):
         if checked:
-            start_time = round(time.time() * 1000) + 10 # TODO: Fix
+            difference = self.sim_lidar_time_start - self.sim_image_time_start
+            if difference > 0:
+                lidar_start_add = difference
+                image_start_add = 0
+            else:
+                image_start_add = abs(difference)
+                lidar_start_add = 0
+            start_time = round(time.time() * 1000) + 100 # TODO: Fix
             ## Startup Camera Simulation
             self.gui_camera_queue = multiprocessing.Queue()
             self.startImageViewer(imageQueue=self.gui_camera_queue)
             self.camera_process = camera_control.CameraMultiProcessSimulation(path_simulationFolder=self.simulation_folder_path,
-                                                                              i_startTime=start_time,
+                                                                              i_startTime=start_time + image_start_add,
                                                                               multiProc_queue=self.gui_camera_queue)
             ## startup Lidar Simulation
             self.gui_lidar_data_queue = multiprocessing.Queue()
             self.startLidarReader(dataQueue=self.gui_lidar_data_queue)
             self.lidar_process = lidar_control.LidarMultiProcessSimulation(path_simulationFolder=self.simulation_folder_path,
                                                                            dataQueue=self.gui_lidar_data_queue,
-                                                                           i_startTime=start_time)
+                                                                           i_startTime=start_time + lidar_start_add)
 
             self.camera_process.start()
             self.lidar_process.start()
@@ -299,6 +322,7 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
 
             # Stop Lidar
             self.lidar_process.kill()
+            self.lidar_process.terminate()
             self.stopLidarReader()
 
         self.enableWidgtsOnSimulation(enable=not(checked))
