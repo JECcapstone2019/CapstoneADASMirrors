@@ -17,11 +17,13 @@ class CarDetectionThread(QThread):
         while self.isRunning:
             try:
                 roi = self.roi_queue.get(block=False)
+                print(roi)
                 if len(roi[1]) >= 1:
+                    print("GOT ONE")
                     self.update_roi.emit(roi)
             except queue.Empty:
                 pass
-            time.sleep(.005)
+            time.sleep(.01)
         print("Car Detection Thread exited")
 
     def stop(self):

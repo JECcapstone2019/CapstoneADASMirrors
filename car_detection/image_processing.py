@@ -22,13 +22,6 @@ class ImageProcessor(multiprocessing.Process):
         self.cascade_src = ''
         self.car_cascade = None
 
-    # Put the car position and a timestamp into the queue
-    def sendCarInformation(self):
-        try:
-            self.roi_queue.put((self.frame_timestamp, self.car_position), block=False)
-        except queue.Full:
-            pass
-
     # Constant loop that processes images as they come
     def run(self):
         self.cascade_src = os.path.join(os.getcwd(), 'car_detection\\cars.xml')
@@ -40,9 +33,12 @@ class ImageProcessor(multiprocessing.Process):
 
     def runCarDetection(self):
         try:
-            self.frame, self.frame_timestamp = self.image_queue.get(block=False)
-            self.car_positions = list(self.car_cascade.detectMultiScale(self.frame, 1.1, 2, 0))
-            self.sendCarInformation()
+            frame, frame_timestamp = self.image_queue.get(timeout=0.005)
+            car_positions = self.car_cascade.detectMultiScale(frame, 1.1, 2, 0)
+            try:
+                self.roi_queue.put((frame_timestamp, car_positions), timeout=0.01)
+            except queue.Full:
+                pass
         except queue.Empty:
                 pass
         time.sleep(0.001)
