@@ -17,9 +17,7 @@ class CarDetectionThread(QThread):
         while self.isRunning:
             try:
                 roi = self.roi_queue.get(block=False)
-                print(roi)
                 if len(roi[1]) >= 1:
-                    print("GOT ONE")
                     self.update_roi.emit(roi)
             except queue.Empty:
                 pass

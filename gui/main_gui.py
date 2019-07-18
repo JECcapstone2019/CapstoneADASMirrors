@@ -190,15 +190,16 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         pixmap = QPixmap.fromImage(image)
         if self.car_detected:
             # TODO: Add in when ready
-            pixmap = self.paintRectangle(pixmap=pixmap)
+            pixmap = self.paintRectangles(pixmap=pixmap)
         self.imageViewer.setPixmap(pixmap)
 
-    def paintRectangle(self, pixmap):
+    def paintRectangles(self, pixmap):
         painter = QPainter(pixmap)
         pen = QPen(self.car_detection_color) # TODO: Fix coloring
         pen.setWidth(3)
         painter.setPen(pen)
-        painter.drawRect(240, 240, 100, 100)
+        for roi in self.ROIs:
+            painter.drawRect(roi[0], roi[1], roi[2], roi[3])
         del pen
         del painter
         return pixmap
@@ -249,8 +250,12 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
 
     @pyqtSlot(tuple)
     def onROIUpdated(self, roiData):
-        for roi in roiData[1]:
-            print("ROI Updated to (%i, %i) (%i, %i)" % (roi[0], roi[1], roi[2], roi[3]))
+        self.ROIs = roiData[1]
+        self.ROI_timestamp = roiData[0]
+        if len(self.ROIs) > 0:
+            self.car_detected = True
+        else:
+            self.car_detected = False
 
 
     ## Simulation Functions ############################################################################################
