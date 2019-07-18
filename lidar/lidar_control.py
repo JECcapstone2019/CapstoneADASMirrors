@@ -240,7 +240,7 @@ class LidarMultiproccess(Process):
 
 class LidarMultiProcessSimulation(LidarMultiproccess):
     def __init__(self, path_simulationFolder, dataQueue, i_startTime, i_leewayms=2, *args, **kwargs):
-        LidarMultiproccess.__init__(dataQueue, None, None, *args, *kwargs)
+        LidarMultiproccess.__init__(self, dataQueue, None, None, *args, *kwargs)
         self.sim_folder = path_simulationFolder
 
         self.start_time = i_startTime
@@ -250,7 +250,7 @@ class LidarMultiProcessSimulation(LidarMultiproccess):
         self.leeway_ms = i_leewayms
         self.wait_time = (float(self.leeway_ms)/1000.0)/4.0
         self.count = 0
-        self.last_data_sent = None
+        self.last_data_sent = i_startTime
         self.parseSimulationFile()
         self.ms_conversion = 0.001
 
@@ -260,17 +260,19 @@ class LidarMultiProcessSimulation(LidarMultiproccess):
             reader = csv.reader(simFile)
             last_time = 0
             for row in reader:
-                if last_time == 0:
-                    last_time = row[1]
-                self.sleep_times[row[0]] = row[3] - last_time
-                self.data_packs[row[0]] = (row[1], row[2], row[3])
+                if len(row) > 0:
+                    if last_time == 0:
+                        last_time = int(row[1])
+                    self.sleep_times[int(row[0])] = int(row[3]) - last_time
+                    self.data_packs[int(row[0])] = (int(row[1]), int(row[2]), int(row[3]))
+                    last_time = int(row[3])
 
     def run(self):
         self.count = 0
-        time.sleep(self.start_time - self.getTime())
         while not self.abort:
             self.sendData()
             self.count += 1
+            print(self.sleep_times[self.count])
             time.sleep(self.ms_conversion * self.sleep_times[self.count])
 
     def sendData(self):

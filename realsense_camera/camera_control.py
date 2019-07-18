@@ -239,6 +239,10 @@ class CameraMultiProcess(Process):
             except:
                 continue
             time.sleep(self.frame_sleep)
+        try:
+            self.camera.disconnect()
+        except:
+            pass
         print("Image Putter Done")
 
     def kill(self):
@@ -278,7 +282,6 @@ class CameraMultiProcessSimulation(CameraMultiProcess):
             self.daemon = True
             self.count = 0
             self.next_image = None
-            self.start()
 
 
         def run(self):
@@ -290,15 +293,15 @@ class CameraMultiProcessSimulation(CameraMultiProcess):
                     self.next_image = None
                 except queue.Full:
                     pass
-                time.sleep(0.001)
+                time.sleep(0.005)
 
         def loadNextImage(self):
-            if self.next_image == None:
+            if self.next_image is None:
                 self.next_image = np.load(self.data_dict[self.count])
 
     def __init__(self, path_simulationFolder, i_startTime , multiProc_queue, frameRate=30, frameSize=(640, 480),
                  *args, **kwargs):
-        CameraMultiProcess.__init__(multiProc_queue=multiProc_queue, frameRate=frameRate, frameSize=frameSize,
+        CameraMultiProcess.__init__(self, multiProc_queue=multiProc_queue, frameRate=frameRate, frameSize=frameSize,
                                     *args, **kwargs)
         self.sim_folder = path_simulationFolder
 
@@ -309,16 +312,15 @@ class CameraMultiProcessSimulation(CameraMultiProcess):
         self.max_count = 0
 
         self.count = 0
-        self.last_data_sent = None
+        self.last_data_sent = i_startTime
         self.parseSimulationFile()
         self.ms_conversion = 0.001
 
+        self.worker_queue = None
+        self.worker_thread = None
+
         self.parseSimulationFile()
 
-        #Limit number of numpy images loaded so we don't overload the memory
-        self.worker_queue = queue.Queue(maxsize=50)
-        self.worker_thread = self.WorkerThread(dataDict=self.image_paths, imageQueue=self.worker_queue)
-        self.worker_thread.start()
 
     def parseSimulationFile(self):
         file_path = os.path.join(self.sim_folder, 'image_data.csv')
@@ -326,18 +328,24 @@ class CameraMultiProcessSimulation(CameraMultiProcess):
             reader = csv.reader(simFile)
             last_time = 0
             for row in reader:
-                if last_time == 0:
-                    last_time = row[1]
-                self.sleep_times[row[0]] = row[1] - last_time
-                self.image_timestamps[row[0]] = row[1]
+                if len(row) > 0:
+                    if last_time == 0:
+                        last_time = int(row[1])
+                    self.sleep_times[int(row[0])] = int(row[1]) - last_time
+                    self.image_timestamps[int(row[0])] = int(row[1])
+                    last_time = int(row[1])
 
         self.max_count = len(self.sleep_times)
         for image in range(self.max_count):
             self.image_paths[image] = os.path.join(self.sim_folder, 'image_%i.npy' % image)
 
     def run(self):
+        #Limit number of numpy images loaded so we don't overload the memory
+        self.worker_queue = queue.Queue(maxsize=50)
+        self.worker_thread = self.WorkerThread(dataDict=self.image_paths, imageQueue=self.worker_queue)
+        self.worker_thread.start()
+
         self.count = 0
-        time.sleep(self.start_time - self.getTime())
         while self.alive:
             self.sendData()
             self.count += 1
@@ -350,7 +358,7 @@ class CameraMultiProcessSimulation(CameraMultiProcess):
 
     def getTime(self):
         # gives the time in ms
-        return round(time.time() * 1000) - self.last_data_sent
+        return (round(time.time() * 1000) - self.last_data_sent)
 
 # Quick function to grab some images and save them as numpies
 def saveXImages(xImages, folderPath='', rate=1.0):
