@@ -56,7 +56,7 @@ class VirtualStream:
 
 
 def saveNumpyAsJpeg(np_image, filePath):
-    raise NotImplementedError
+    cv2.imwrite(filePath, np_image)
 
 
 def loadJPEGAsNumpy(filePath):
