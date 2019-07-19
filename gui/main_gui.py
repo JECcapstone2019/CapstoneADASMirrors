@@ -138,8 +138,8 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         self.lidar_reader.stop()
 
     @pyqtSlot(int)
-    def onUpdateLidarDistance(self, str_distance):
-        print("Lidar Distance: %s" % str_distance)
+    def onUpdateLidarDistance(self, i_distance):
+        self.lidarTextEdit.setText('%i.%im' % (i_distance / 100, i_distance % 100))
 
     @pyqtSlot(int)
     def onUpdateLidarVelocity(self, str_velocity):
@@ -259,7 +259,6 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
             self.car_detected = True
         else:
             self.car_detected = False
-
 
     ## Simulation Functions ############################################################################################
     def onSelectSimulationFolder(self):
