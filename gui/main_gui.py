@@ -77,7 +77,7 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         self.sim_image_time_start = 0
         self.sim_lidar_time_start = 0
 
-        self.imageViewer.setMinimumSize(640, 480)
+        self.imageViewer.setMinimumSize(480, 640)
 
         self.connectObjectFunctions()
 

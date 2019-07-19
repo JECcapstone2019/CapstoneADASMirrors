@@ -23,6 +23,8 @@ if __name__ == '__main__':
         if (type(img) == type(None)):
             break
 
+        print('frame:%i' % stream.count)
+
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
         cars = car_cascade.detectMultiScale(gray, 1.1, 2, 0)
