@@ -7,7 +7,7 @@ import csv
 
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import pyqtSlot, pyqtSignal, Qt
-from PyQt5.QtGui import QImage, QPixmap, QPainter, QPen, QColor
+from PyQt5.QtGui import QImage, QPixmap, QPainter, QPen, QColor, QFont
 
 from gui.qt_designer_files import main_gui_ui
 from gui.qt_reader_threads import lidar_reader_thread, viewer_thread, car_detection_thread
@@ -30,29 +30,23 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
                             # It sets up layout and widgets that are defined
 
         # Define widget groups for hiding and disabling ################################################################
-        self.sim_widgets = [self.simulationRunSimulation, self.simulationFolderSelectedTextEdit,
-                            self.simulationSelectFolder, self.simulationTextEdit, self.simulationTitle,
-                            self.simulationStartSavingNew]
+        self.sim_widgets = [self.simulationRunSimulation, self.simulationSelectFolder, self.simulationTitle,
+                            self.simulationStartSavingNew, self.simulationFolderSelectedTextEdit]
 
-        self.lidar_widgets = [self.lidarEnableCheckBox, self.lidarCheckProcessButton, self.lidarSelection,
-                              self.lidarTextEdit, self.lidarTitle, self.lidarGetDistanceButton,
-                              self.lidarGetVelocityButton, self.lidarStreamDistance, self.lidarStreamVelocity]
+        self.lidar_widgets = [self.lidarEnableCheckBox, self.lidarSelection, self.lidarTitle, self.lidarSetupButton,
+                              self.lidarGetDistanceButton, self.lidarGetVelocityButton, self.lidarStreamDistance,
+                              self.lidarStreamVelocity]
 
-        self.lidar_reader_widgets = [self.lidarReaderTitle, self.lidarReaderLabel, self.lidarReaderTextEdit]
+        self.camera_widgets = [self.cameraEnableCheckBox, self.cameraSelection, self.cameraTitle]
 
-        self.camera_widgets = [self.cameraEnableCheckBox, self.cameraCheckProcessButton, self.cameraTextEdit,
-                               self.cameraSelection, self.cameraTitle]
-
-        self.image_viewer_widgets = [self.imageViewerTitle, self.imageViewerLabel, self.imageViewerTextEdit]
-
-        self.car_detection_widgets = [self.carDetectionSelection, self.carDetectionTitle, self.carDetectionTextEdit,
-                                      self.carDetectionCheckProcessButton_2, self.carDetectionEnableCheckBox]
+        self.car_detection_widgets = [self.carDetectionSelection, self.carDetectionTitle,
+                                      self.carDetectionEnableCheckBox]
 
         self.line_widgets = [self.line, self.line_2, self.line_3, self.line_4, self.line_5, self.line_6, self.line_7,
                              self.line_8, self.line_9, self.line_10, self.line_11, self.line_12, self.line_13]
 
-        self.option_widgets = [self.sim_widgets, self.lidar_widgets, self.lidar_reader_widgets, self.camera_widgets,
-                               self.image_viewer_widgets, self.car_detection_widgets, self.line_widgets]
+        self.option_widgets = [self.sim_widgets, self.lidar_widgets, self.camera_widgets, self.car_detection_widgets,
+                               self.line_widgets]
 
         ################################################################################################################
 
@@ -77,7 +71,7 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         self.sim_image_time_start = 0
         self.sim_lidar_time_start = 0
 
-        self.imageViewer.setMinimumSize(480, 640)
+        self.lidar_distance = 0
 
         self.connectObjectFunctions()
 
@@ -141,7 +135,7 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
 
     @pyqtSlot(int)
     def onUpdateLidarDistance(self, i_distance):
-        self.lidarTextEdit.setText('%i.%im' % (i_distance / 100, i_distance % 100))
+        self.lidar_distance = i_distance
 
     @pyqtSlot(int)
     def onUpdateLidarVelocity(self, str_velocity):
@@ -193,18 +187,20 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
     @pyqtSlot(QImage, int, int)
     def onRepaintImage(self, image, h, w):
         pixmap = QPixmap.fromImage(image)
-        if self.car_detected:
-            pixmap = self.paintRectangles(pixmap=pixmap)
+        pixmap = self.paintImage(pixmap=pixmap)
         image.scaled(h, w, Qt.KeepAspectRatio)
         self.imageViewer.setPixmap(pixmap)
 
-    def paintRectangles(self, pixmap):
+    def paintImage(self, pixmap):
         painter = QPainter(pixmap)
         pen = QPen(self.car_detection_color) # TODO: Fix coloring
         pen.setWidth(3)
         painter.setPen(pen)
-        for roi in self.ROIs:
-            painter.drawRect(roi[0], roi[1], roi[2], roi[3])
+        painter.setFont(QFont('Decorative', 10))
+        painter.drawText(0, 10, "Distance: %i.%im, Velocity:" % (self.lidar_distance/100, self.lidar_distance % 100))
+        if self.car_detected:
+            for roi in self.ROIs:
+                painter.drawRect(roi[0], roi[1], roi[2], roi[3])
         del pen
         del painter
         return pixmap
@@ -349,7 +345,6 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
 
     def enableWidgtsOnSimulation(self, enable):
         self.enableWidgetArray(arr_widgets=self.lidar_widgets, enable=enable)
-        self.enableWidgetArray(arr_widgets=self.lidar_reader_widgets, enable=enable)
         self.enableWidgetArray(arr_widgets=self.camera_widgets, enable=enable)
 
 
