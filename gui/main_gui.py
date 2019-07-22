@@ -72,6 +72,7 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         self.sim_lidar_time_start = 0
 
         self.lidar_distance = 0
+        self.lidar_velocity = 0
 
         self.connectObjectFunctions()
 
@@ -137,9 +138,9 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
     def onUpdateLidarDistance(self, i_distance):
         self.lidar_distance = i_distance
 
-    @pyqtSlot(int)
-    def onUpdateLidarVelocity(self, str_velocity):
-        print("Lidar Distance: %s" % str_velocity)
+    @pyqtSlot(float)
+    def onUpdateLidarVelocity(self, f_velocity):
+        self.lidar_velocity = f_velocity
 
     ## Lidar Functions #################################################################################################
     def onLidarEnable(self, checked):
@@ -197,7 +198,8 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         pen.setWidth(3)
         painter.setPen(pen)
         painter.setFont(QFont('Decorative', 10))
-        painter.drawText(0, 10, "Distance: %i.%im, Velocity:" % (self.lidar_distance/100, self.lidar_distance % 100))
+        painter.drawText(0, 10, "Distance: %i.%im, Velocity:%f" % (self.lidar_distance/100, self.lidar_distance % 100,
+                                                                   self.lidar_velocity))
         if self.car_detected:
             for roi in self.ROIs:
                 if roi != (-1, -1, -1, -1):

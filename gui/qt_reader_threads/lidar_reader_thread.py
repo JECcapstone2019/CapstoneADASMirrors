@@ -6,7 +6,7 @@ import queue
 
 class LidarReaderThread(QThread):
     onUpdateLidarDistance = pyqtSignal(int)
-    onUpdateLidarVelocity = pyqtSignal(int)
+    onUpdateLidarVelocity = pyqtSignal(float)
 
     SAVE_FILE_NAME = 'lidar_data.csv'
 

@@ -65,6 +65,8 @@ class LidarArdunio(LidarControl):
     def __init__(self, arduinoControl):
         LidarControl.__init__(self)
         self.arduino_comms = arduinoControl #Class variable
+        self.last_timestamp = 0
+        self.time_difference = 0
 
     def connect(self): # SETUP DEFAULT CONFGURATION (OVERIDE METHOD)
         self.arduino_comms.connect()
@@ -79,7 +81,22 @@ class LidarArdunio(LidarControl):
         messagereturn = self.arduino_comms.sendCommand(defs.ID_LIDAR_READ, [0x00])
         # Shift and add
         distance = (messagereturn[5] << 8) + messagereturn[6]
+        self._onReceivedDistanceTimestamp(message=messagereturn)
+
         return distance
+
+    def getVelocity(self):
+        distance = self.getDistance()
+        return (distance * 0.01) / (self.time_difference)
+
+    def _onReceivedDistanceTimestamp(self, message):
+        time = 0
+        time += message[7] << 24
+        time += message[8] << 16
+        time += message[9] << 8
+        time += message[10]
+        self.time_difference = (time - self.last_timestamp) * 0.001
+        self.last_timestamp = time
 
     def readFromRegister(self, address, numBytes=1):
         returnMsg = self.arduino_comms.sendCommand(0x06, [0x62, address, numBytes])
