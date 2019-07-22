@@ -66,6 +66,7 @@ class LidarArdunio(LidarControl):
         LidarControl.__init__(self)
         self.arduino_comms = arduinoControl #Class variable
         self.last_timestamp = 0
+        self.last_distance = 0
         self.time_difference = 0
 
     def connect(self): # SETUP DEFAULT CONFGURATION (OVERIDE METHOD)
@@ -87,7 +88,9 @@ class LidarArdunio(LidarControl):
 
     def getVelocity(self):
         distance = self.getDistance()
-        return (distance * 0.01) / (self.time_difference)
+        velocity = ((distance * 0.01) - self.last_distance) / (self.time_difference)
+        self.last_distance = distance * 0.01
+        return velocity
 
     def _onReceivedDistanceTimestamp(self, message):
         time = 0
@@ -283,7 +286,10 @@ class LidarMultiProcessSimulation(LidarMultiproccess):
                     if last_time == 0:
                         last_time = int(row[3])
                     self.sleep_times[int(row[0])] = int(row[3]) - last_time
-                    self.data_packs[int(row[0])] = (int(row[1]), int(row[2]), int(row[3]))
+                    if int(row[1]) == 1:
+                        self.data_packs[int(row[0])] = (int(row[1]), float(row[2]), int(row[3]))
+                    else:
+                        self.data_packs[int(row[0])] = (int(row[1]), int(row[2]), int(row[3]))
                     last_time = int(row[3])
             self.max_count = len(self.data_packs)
 

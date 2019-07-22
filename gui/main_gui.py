@@ -198,7 +198,7 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         pen.setWidth(3)
         painter.setPen(pen)
         painter.setFont(QFont('Decorative', 10))
-        painter.drawText(0, 10, "Distance: %i.%im, Velocity:%f" % (self.lidar_distance/100, self.lidar_distance % 100,
+        painter.drawText(0, 20, "Distance: %i.%im, Velocity:%f" % (self.lidar_distance/100, self.lidar_distance % 100,
                                                                    self.lidar_velocity))
         if self.car_detected:
             for roi in self.ROIs:
