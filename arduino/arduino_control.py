@@ -156,7 +156,7 @@ if __name__ == '__main__':
     print(list(a_control.sendCommand(0x03, [0x00, 0x00])))
     print(list(a_control.sendCommand(0x04, [0x00])))
     print(list(a_control.sendCommand(0x04, [0x00])))
-    for i in range(100):
+    for i in range(10):
         print(list(a_control.sendCommand(0x04, [0x00])))
 
     a_control.disconnect()

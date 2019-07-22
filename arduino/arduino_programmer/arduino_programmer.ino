@@ -140,7 +140,7 @@ const int LIDAR_DISTANCE_ADDRESS = 0x8f;
 void cmd_lidarGetDist(){
 
     int nackCatcher = 1;
-    byte complete_array[6] = {0x01, 0xff, 0x00, 0x00, 0x00, 0x00};
+    byte complete_array[7] = {0x01, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00};
     nackCatcher = nackCatcher * lidarFireLaser();
 
     Wire.beginTransmission((int)LIDAR_I2C_ADDRESS);
@@ -149,24 +149,21 @@ void cmd_lidarGetDist(){
     // A nack means the device is not responding, report the error over serial
     nackCatcher = nackCatcher * Wire.endTransmission();
     delay(1);
-    if(nackCatcher == 0){
-        sendCompletedMessage(COMPLETE_NO_LIDAR_READ, 1, EMPTY);
-        return;
-    }
+    // TODO: Fix nack check later
 
     // Request the two bytes
     Wire.requestFrom(LIDAR_I2C_ADDRESS, LIDAR_DISTANCE_NUM_READ_BYTES);
     unsigned long timeCur = millis();//Mark the time of LiDAR read
-    complete_array[2] = (timeCur >> 24) & 0xff;
-    complete_array[3] = (timeCur >> 16) & 0xff;
-    complete_array[4] = (timeCur >> 8) & 0xff;
-    complete_array[5] = timeCur & 0xff;
+    complete_array[2] = (int)(timeCur >> 24) & 0xff;
+    complete_array[3] = (int)(timeCur >> 16) & 0xff;
+    complete_array[4] = (int)(timeCur >> 8) & 0xff;
+    complete_array[5] = (int)(timeCur & 0xff);
 
     if(LIDAR_DISTANCE_NUM_READ_BYTES <= Wire.available()){
         for(int readByte = 0; readByte < LIDAR_DISTANCE_NUM_READ_BYTES; readByte++){
-            distanceArray[i] = Wire.read();
+            complete_array[readByte] = Wire.read();
         }
-        sendCompletedMessage(COMPLETE_NO_ERROR, 6, complete_array);
+        sendCompletedMessage(COMPLETE_NO_ERROR, 7, complete_array);
     }
     else{
         sendCompletedMessage(COMPLETE_NO_LIDAR_READ, 1, EMPTY);
