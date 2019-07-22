@@ -29,6 +29,10 @@ class LidarReaderThread(QThread):
                 elif data_type is 1:
                     self.onUpdateLidarVelocity.emit(data)
                 if self.saving:
+                    # TODO: Fix Traceback (most recent call last):
+                    #   File "C:\Users\e_q\Documents\source_tree\main_program\gui\qt_reader_threads\lidar_reader_thread.py", line 32, in run
+                    #     self.csv_writer.writerow([self.count, data_type, data, timestamp])
+                    # AttributeError: 'NoneType' object has no attribute 'writerow'
                     self.csv_writer.writerow([self.count, data_type, data, timestamp])
                     self.count += 1
             except queue.Empty:
