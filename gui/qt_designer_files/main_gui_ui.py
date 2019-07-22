@@ -12,7 +12,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1250, 560)
+        MainWindow.resize(1250, 541)
         MainWindow.setMaximumSize(QtCore.QSize(16777215, 16777215))
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
@@ -25,10 +25,6 @@ class Ui_MainWindow(object):
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.verticalLayout = QtWidgets.QVBoxLayout()
         self.verticalLayout.setObjectName("verticalLayout")
-        self.lidarData = QtWidgets.QLabel(self.centralwidget)
-        self.lidarData.setText("")
-        self.lidarData.setObjectName("lidarData")
-        self.verticalLayout.addWidget(self.lidarData)
         self.imageViewer = QtWidgets.QLabel(self.centralwidget)
         self.imageViewer.setMinimumSize(QtCore.QSize(640, 480))
         self.imageViewer.setText("")
