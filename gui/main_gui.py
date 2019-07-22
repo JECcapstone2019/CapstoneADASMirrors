@@ -4,6 +4,7 @@ import sys
 import time
 from tools import time_stamping
 import csv
+import numpy as np
 
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import pyqtSlot, pyqtSignal, Qt
@@ -17,7 +18,6 @@ from realsense_camera import camera_control
 from car_detection import image_processing
 
 
-# Short overriding class for running the application
 class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
 
     # Thread Signals
@@ -200,7 +200,8 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         painter.drawText(0, 10, "Distance: %i.%im, Velocity:" % (self.lidar_distance/100, self.lidar_distance % 100))
         if self.car_detected:
             for roi in self.ROIs:
-                painter.drawRect(roi[0], roi[1], roi[2], roi[3])
+                if roi != (-1, -1, -1, -1):
+                    painter.drawRect(roi[0], roi[1], roi[2], roi[3])
         del pen
         del painter
         return pixmap
@@ -253,6 +254,7 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
     def onROIUpdated(self, roiData):
         self.ROIs = roiData[1]
         self.ROI_timestamp = roiData[0]
+        self.checkROIsIntegration()
         if len(self.ROIs) > 0:
             self.car_detected = True
         else:
@@ -346,6 +348,19 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
     def enableWidgtsOnSimulation(self, enable):
         self.enableWidgetArray(arr_widgets=self.lidar_widgets, enable=enable)
         self.enableWidgetArray(arr_widgets=self.camera_widgets, enable=enable)
+
+    ## Sensor Integration ##############################################################################################
+    def checkROIsIntegration(self):
+        for roi in range(len(self.ROIs)):
+            y, x, h, w = self.ROIs[roi]
+            square = np.ones((w, h), dtype=np.bool)
+            checker = np.zeros((480, 640), dtype=np.bool)
+            checker[x : x + w, y: y + h] = square
+            percent_in = np.count_nonzero(checker*self.roi_checker)
+            if percent_in < ((h * w)/2):
+                # Remove this ROI
+                self.ROIs[roi] = (-1, -1, -1, -1)
+
 
 
 def run_gui(lidar, camera, dev):
