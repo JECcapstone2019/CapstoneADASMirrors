@@ -65,7 +65,7 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         self.car_detection_roi_queue = None
         self.car_detected = False
         self.car_detection_roi = []
-        self.car_detection_color = QColor(255, 0, 0)
+        self.car_detection_color = QColor(0, 0, 255)
 
         self.simulation_folder_path = ''
         self.sim_image_time_start = 0
@@ -73,6 +73,13 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
 
         self.lidar_distance = 0
         self.lidar_velocity = 0
+
+        ## ROI calc and filtering
+        self.expected_width_min = 0
+        self.expected_width_max = 0
+        self.calc_m = -0.0644
+        self.calc_b = 180.6431
+        self.pixel_leeway = 50
 
         self.connectObjectFunctions()
 
@@ -137,10 +144,14 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
     @pyqtSlot(int)
     def onUpdateLidarDistance(self, i_distance):
         self.lidar_distance = i_distance
+        self.distance_warning = i_distance / float(4000)
+        self.updateExpectedROI()
+        self.updateROIColor()
 
     @pyqtSlot(float)
     def onUpdateLidarVelocity(self, f_velocity):
         self.lidar_velocity = f_velocity
+        self.updateROIColor()
 
     ## Lidar Functions #################################################################################################
     def onLidarEnable(self, checked):
@@ -202,8 +213,7 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
                                                                    self.lidar_velocity))
         if self.car_detected:
             for roi in self.ROIs:
-                if roi != (-1, -1, -1, -1):
-                    painter.drawRect(roi[0], roi[1], roi[2], roi[3])
+                painter.drawRect(roi[0], roi[1], roi[2], roi[3])
         del pen
         del painter
         return pixmap
@@ -257,6 +267,7 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         self.ROIs = roiData[1]
         self.ROI_timestamp = roiData[0]
         self.checkROIsIntegration()
+        # self.checkROIsIntegration()
         if len(self.ROIs) > 0:
             self.car_detected = True
         else:
@@ -352,16 +363,41 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         self.enableWidgetArray(arr_widgets=self.camera_widgets, enable=enable)
 
     ## Sensor Integration ##############################################################################################
+    def updateExpectedROI(self):
+        expected_width = (self.calc_m * self.lidar_distance) + self.calc_b
+        self.expected_width_min = expected_width - self.pixel_leeway
+        self.expected_width_max = expected_width + self.pixel_leeway
+
     def checkROIsIntegration(self):
+        removes = []
         for roi in range(len(self.ROIs)):
             y, x, h, w = self.ROIs[roi]
-            square = np.ones((w, h), dtype=np.bool)
-            checker = np.zeros((480, 640), dtype=np.bool)
-            checker[x : x + w, y: y + h] = square
-            percent_in = np.count_nonzero(checker*self.roi_checker)
-            if percent_in < ((h * w)/2):
+            if self.expected_width_min > w or w > self.expected_width_max:
                 # Remove this ROI
-                self.ROIs[roi] = (-1, -1, -1, -1)
+                removes.append(roi)
+        self.ROIs = np.delete(self.ROIs, removes, axis=0)
+
+    def updateROIColor(self):
+        # Check if the lidar distance/velocity measurements are worth looking at
+        if abs(self.lidar_velocity) < 1:
+            self.lidar_velocity = 0
+        if self.lidar_distance < 50:
+            self.lidar_distance = 0
+        colors = (0, 0, 255)
+        # No lidar data, make the square green
+        if self.lidar_distance == self.lidar_velocity == 0:
+            pass
+        # No lidar distance, only velocity useful
+        elif self.lidar_distance == 0:
+            pass
+        # no lidar velocity, only distance useful
+        elif self.lidar_velocity == 0:
+            ratio = min(abs(((self.lidar_distance * 0.01) / 40.0)), 1)
+            colors = (round((1 - ratio) * 255), round(ratio * 255), 0)
+        # Use both lidar measurements
+        else:
+            ratio = min(abs(((self.lidar_distance * 0.01) / 40.0)), 1)
+        self.car_detection_color = QColor(*colors)
 
 
 
