@@ -243,7 +243,7 @@ class CameraMultiProcess(Process):
             self.camera.disconnect()
         except:
             pass
-        print("Image Putter Done")
+        print("Camera Process Done")
 
     def kill(self):
         self.alive = False
@@ -284,7 +284,6 @@ class CameraMultiProcessSimulation(CameraMultiProcess):
             self.daemon = True
             self.count = 0
             self.next_image = None
-
 
         def run(self):
             while self.alive:
@@ -355,12 +354,14 @@ class CameraMultiProcessSimulation(CameraMultiProcess):
         self.count = 0
         while((self.start_time - (time.time() * 1000)) > 2):
             time.sleep(0.001)
-        while self.alive:
+        while self.alive and (self.count < self.max_count):
             self.sendData()
             self.count += 1
-            if self.count >= self.max_count:
-                self.count = 0
-            time.sleep(self.ms_conversion * self.sleep_times[self.count])
+            try:
+                time.sleep(self.ms_conversion * self.sleep_times[self.count])
+            except KeyError:
+                continue
+        print("Camera Process Done")
 
     def sendData(self):
         self.image_queue.put((self.worker_queue.get(block=True), self.image_timestamps[self.count]))

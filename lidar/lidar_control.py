@@ -297,12 +297,13 @@ class LidarMultiProcessSimulation(LidarMultiproccess):
         self.count = 0
         while ((self.start_time - (time.time() * 1000)) > 2):
             time.sleep(0.001)
-        while self.alive:
+        while self.alive and (self.count < self.max_count):
             self.sendData()
             self.count += 1
-            if self.count >= self.max_count:
-                self.count = 0
-            time.sleep(self.ms_conversion * self.sleep_times[self.count])
+            try:
+                time.sleep(self.ms_conversion * self.sleep_times[self.count])
+            except KeyError:
+                continue
         print("Lidar Process Done")
 
     def sendData(self):

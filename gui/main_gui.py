@@ -11,7 +11,7 @@ from PyQt5.QtCore import pyqtSlot, pyqtSignal, Qt
 from PyQt5.QtGui import QImage, QPixmap, QPainter, QPen, QColor, QFont
 
 from gui.qt_designer_files import main_gui_ui
-from gui.qt_reader_threads import lidar_reader_thread, viewer_thread, car_detection_thread
+from gui.qt_reader_threads import lidar_reader_thread, viewer_thread, car_detection_thread, sim_runner_thread
 
 from lidar import lidar_control
 from realsense_camera import camera_control
@@ -23,6 +23,7 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
     # Thread Signals
     startSavingSimulation = pyqtSignal(str)
     stopSavingSimulation = pyqtSignal()
+    runSimulationToggled = pyqtSignal(bool)
 
     def __init__(self):
         super(self.__class__, self).__init__()
@@ -70,6 +71,7 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         self.simulation_folder_path = ''
         self.sim_image_time_start = 0
         self.sim_lidar_time_start = 0
+        self.simulation_runner_thread = None
 
         self.lidar_distance = 0
         self.lidar_velocity = 0
@@ -302,19 +304,19 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         dialog.setFileMode(dialog.Directory)
         self.simulation_folder_path = dialog.getExistingDirectory(options=QtWidgets.QFileDialog.DontUseNativeDialog)
         # Check if folder exists
+        multiple_simulations = False
+        image_csv_file_path = ''
+        lidar_csv_file_path = ''
         if os.path.exists(self.simulation_folder_path):
-            # Check if both the csv files are in there
-            image_csv_file_path = os.path.join(self.simulation_folder_path, 'image_data.csv')
-            lidar_csv_file_path = os.path.join(self.simulation_folder_path, 'lidar_data.csv')
-            if os.path.exists(image_csv_file_path) and os.path.exists(lidar_csv_file_path):
-                # Get the time delay
-                with open(image_csv_file_path) as csvFile:
-                    csv_reader = csv.reader(csvFile)
-                    self.sim_image_time_start = int(next(csv_reader)[1])
-                with open(lidar_csv_file_path) as csvFile:
-                    csv_reader = csv.reader(csvFile)
-                    self.sim_lidar_time_start = int(next(csv_reader)[3])
-                self.simulationFolderSelectedTextEdit.setText(self.simulation_folder_path)
+            for file in os.listdir(self.simulation_folder_path):
+                if file == 'sim_runner.txt':
+                    multiple_simulations = True
+                elif file == 'image_data.csv':
+                    image_csv_file_path = os.path.join(self.simulation_folder_path, file)
+                elif file == 'lidar_data.csv':
+                    lidar_csv_file_path = os.path.join(self.simulation_folder_path, file)
+        if not(multiple_simulations) and ((image_csv_file_path == '') and (lidar_csv_file_path == '')):
+            self.simulation_folder_path = ''
         self.makeSimulationStartAvailable()
 
     def onSimulationCheckboxToggled(self, checked):
@@ -327,50 +329,27 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
 
     def onSimulationRunToggled(self, checked):
         if checked:
-            difference = self.sim_lidar_time_start - self.sim_image_time_start
-            if difference > 0:
-                lidar_start_add = difference
-                image_start_add = 0
-            else:
-                image_start_add = abs(difference)
-                lidar_start_add = 0
-            start_time = round(time.time() * 1000) + 100
-
-            ## startup Camera Simulation
-            self.gui_camera_queue = multiprocessing.Queue()
-            self.startImageViewer(imageQueue=self.gui_camera_queue)
-            if not(self.car_detection_process is None):
-                self.camera_process = camera_control.CameraMultiProcessSimulationCarDetection(
-                    carDetectionQueue=self.car_detection_camera_queue,
-                    path_simulationFolder=self.simulation_folder_path,
-                    i_startTime=start_time + image_start_add,
-                    multiProc_queue=self.gui_camera_queue)
-            else:
-                self.camera_process = camera_control.CameraMultiProcessSimulation(
-                    path_simulationFolder=self.simulation_folder_path,
-                    i_startTime=start_time + image_start_add,
-                    multiProc_queue=self.gui_camera_queue)
-
-            ## startup Lidar Simulation
             self.gui_lidar_data_queue = multiprocessing.Queue()
-            self.startLidarReader(dataQueue=self.gui_lidar_data_queue)
-            self.lidar_process = lidar_control.LidarMultiProcessSimulation(path_simulationFolder=self.simulation_folder_path,
-                                                                           dataQueue=self.gui_lidar_data_queue,
-                                                                           i_startTime=start_time + lidar_start_add)
+            self.gui_camera_queue = multiprocessing.Queue()
 
-            self.camera_process.start()
-            self.lidar_process.start()
+            self.startLidarReader(dataQueue=self.gui_lidar_data_queue)
+            self.startImageViewer(imageQueue=self.gui_camera_queue)
+
+            self.simulation_runner_thread = sim_runner_thread.SimulationRunnerThread(str_simulationFolderPath=self.simulation_folder_path,
+                                                                                     lidarReaderQueue=self.gui_lidar_data_queue,
+                                                                                     imageViewerQueue=self.gui_camera_queue,
+                                                                                     carDetectionQueue=self.car_detection_camera_queue)
+            self.simulationRunSimulation.toggled.connect(self.simulation_runner_thread.onRunSimulationToggled)
+            self.simulation_runner_thread.start()
         else:
             # Stop Camera
-            self.camera_process.kill()
             self.stopImageViewer()
 
             # Stop Lidar
-            self.lidar_process.kill()
-            self.lidar_process.terminate()
             self.stopLidarReader()
 
         self.enableWidgtsOnSimulation(enable=not(checked))
+        self.runSimulationToggled.emit(checked)
 
     # Used to check if we are able to startup a simulation viewing
     def makeSimulationStartAvailable(self):
