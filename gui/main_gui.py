@@ -87,7 +87,7 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         self.expected_center_min = 0
         self.expected_center_max = 300
 
-        self.calc_a_width = 0.0000282
+        self.calc_a_width = 0.00008
         self.calc_b_width = -0.1422
         self.calc_c_width = 225.83
 
@@ -96,9 +96,12 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
 
         self.pixel_leeway = 60
 
+        self.warning_8_m = 800 # 8m warning in cm
+
         ## Conversion
         self.m_p_s_to_k_p_h = 3.6 # 1m/s = 3.6km/h
         self.warning_30km_p_h = 8.3333 # 30km/h in m/s
+        self.warning_msg = False
 
         self.connectObjectFunctions()
 
@@ -232,8 +235,10 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         pen.setWidth(3)
         painter.setPen(pen)
         painter.setFont(QFont('Decorative', 10))
-        painter.drawText(0, 20, "Distance: %i.%im, Velocity:%f" % (self.lidar_distance/100, self.lidar_distance % 100,
+        if self.warning_msg:
+            painter.drawText(0, 20, "Distance: %i.%im, Velocity:%f" % (self.lidar_distance/100, self.lidar_distance % 100,
                                                                    self.lidar_velocity))
+            painter.drawText(0, 60, "WARNING!")
         if self.car_detected:
             for square in range(len(self.ROIs)):
                 roi = self.ROIs[square]
@@ -317,6 +322,8 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
                     lidar_csv_file_path = os.path.join(self.simulation_folder_path, file)
         if not(multiple_simulations) and ((image_csv_file_path == '') and (lidar_csv_file_path == '')):
             self.simulation_folder_path = ''
+        else:
+            self.simulationSelectFolder.setText(self.simulation_folder_path)
         self.makeSimulationStartAvailable()
 
     def onSimulationCheckboxToggled(self, checked):
@@ -376,12 +383,12 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         check_lidar = (self.last_non_zero_lidar_distance - time.time()) < 0.4
         removes = []
         for roi in range(len(self.ROIs)):
-            y, x, h, w = self.ROIs[roi]
+            x, y, w, h = self.ROIs[roi]
             roi_center = x + (w / 2)
             # Check for ROI's that are on the own car door
             if self.expected_center_min > roi_center or roi_center > self.expected_center_max:
                 removes.append(roi)
-            elif check_lidar:
+            if check_lidar:
                 # Check for ROI's that are too big or small
                 if (self.expected_width_min > w) or (w > self.expected_width_max):
                     removes.append(roi)
@@ -393,12 +400,16 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
             self.lidar_velocity = 0
         if self.lidar_distance < 50:
             self.lidar_distance = 0
+        if self.lidar_velocity < -self.warning_30km_p_h:
+            self.warning_msg = True
+        if self.lidar_distance < self.warning_8_m:
+            self.warning_msg = True
         colors = (0, 0, 255)
         distance_updated_right = ((self.last_non_zero_lidar_distance - time.time()) < 0.4)
         velocity_updated_right = ((self.last_non_zero_lidar_velocity - time.time()) < 0.4)
         # No lidar data, make the square green
         if self.lidar_distance == self.lidar_velocity == 0:
-            pass
+            self.warning_msg = False
         # No lidar distance, only velocity useful
         elif (self.lidar_distance == 0) and distance_updated_right:
             if self.lidar_velocity > 0:
@@ -406,10 +417,10 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
                 colors = (0, 255, 0)
             else:
                 ratio = min(abs(self.lidar_velocity / self.warning_30km_p_h), 1)
-                colors = (round((1 - ratio) * 255), round(ratio * 255), 0)
+                colors = (round(ratio * 255), round((1 - ratio) * 255), 0)
         # no lidar velocity, only distance useful
         elif (self.lidar_velocity == 0) and velocity_updated_right:
-            ratio = min(abs(((self.lidar_distance * 0.01) / 40.0)), 1)
+            ratio = min(abs(((self.lidar_distance * 0.01) / 25.0)), 1)
             colors = (round((1 - ratio) * 255), round(ratio * 255), 0)
         # Use both lidar measurements
         elif distance_updated_right and velocity_updated_right:
@@ -419,11 +430,11 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
             else:
                 ratio_distance = min(abs(((self.lidar_distance * 0.01) / 40.0)), 1)
                 ratio_velocity = min(abs(self.lidar_velocity / self.warning_30km_p_h), 1)
-                ratio = (0.25 * ratio_velocity) + (0.75 * ratio_distance)
+                ratio = (0.25 * (1 - ratio_velocity)) + (0.75 * ratio_distance)
                 colors = (round((1 - ratio) * 255), round(ratio * 255), 0)
-        for color in colors:
-            if color > 255:
-                pass
+        else:
+            self.warning_msg = False
+
         self.car_detection_color = QColor(*colors)
 
 
