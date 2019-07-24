@@ -405,7 +405,7 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
                 # Car moving away, don't care
                 colors = (0, 255, 0)
             else:
-                ratio = min(abs(self.lidar_velocity), self.warning_30km_p_h)
+                ratio = min(abs(self.lidar_velocity / self.warning_30km_p_h), 1)
                 colors = (round((1 - ratio) * 255), round(ratio * 255), 0)
         # no lidar velocity, only distance useful
         elif (self.lidar_velocity == 0) and velocity_updated_right:
@@ -421,8 +421,10 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
                 ratio_velocity = min(abs(self.lidar_velocity / self.warning_30km_p_h), 1)
                 ratio = (0.25 * ratio_velocity) + (0.75 * ratio_distance)
                 colors = (round((1 - ratio) * 255), round(ratio * 255), 0)
+        for color in colors:
+            if color > 255:
+                pass
         self.car_detection_color = QColor(*colors)
-
 
 
 def run_gui(lidar, camera, dev):
