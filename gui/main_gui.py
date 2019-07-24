@@ -93,6 +93,7 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
 
         self.calc_m_width_center = 0.0162
         self.calc_b_width_center = 233.216
+        self.expected_center = 0
 
         self.pixel_leeway = 60
 
@@ -377,6 +378,7 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
                          (self.calc_b_width * self.lidar_distance) + self.calc_c_width
         self.expected_width_min = expected_width - self.pixel_leeway
         self.expected_width_max = expected_width + self.pixel_leeway
+        self.expected_center = (self.calc_m_width_center * self.lidar_distance) + self.calc_b_width_center
 
     def checkROIsIntegration(self):
         # Check if the lidar was updated at a good time
@@ -388,9 +390,11 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
             # Check for ROI's that are on the own car door
             if self.expected_center_min > roi_center or roi_center > self.expected_center_max:
                 removes.append(roi)
-            if check_lidar:
+            elif check_lidar:
                 # Check for ROI's that are too big or small
                 if (self.expected_width_min > w) or (w > self.expected_width_max):
+                    removes.append(roi)
+                elif (self.expected_center - roi_center) > self.pixel_leeway:
                     removes.append(roi)
         self.ROIs = np.delete(self.ROIs, removes, axis=0)
 
