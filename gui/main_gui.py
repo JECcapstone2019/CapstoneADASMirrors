@@ -81,6 +81,10 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         self.expected_width_min = 0
         self.expected_width_max = 0
 
+        ##
+        self.expected_center_min = 0
+        self.expected_center_max = 300
+
         self.calc_a_width = 0.0000282
         self.calc_b_width = -0.1422
         self.calc_c_width = 225.83
@@ -89,6 +93,10 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         self.calc_b_width_center = 233.216
 
         self.pixel_leeway = 60
+
+        ## Conversion
+        self.m_p_s_to_k_p_h = 3.6 # 1m/s = 3.6km/h
+        self.warning_30km_p_h = 8.3333 # 30km/h in m/s
 
         self.connectObjectFunctions()
 
@@ -383,18 +391,22 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
                          (self.calc_b_width * self.lidar_distance) + self.calc_c_width
         self.expected_width_min = expected_width - self.pixel_leeway
         self.expected_width_max = expected_width + self.pixel_leeway
-        print('expected width:%f  lidar distance:%icm' % (expected_width, self.lidar_distance))
 
     def checkROIsIntegration(self):
-        if (self.last_non_zero_lidar_distance - time.time()) < 0.4:
-            removes = []
-            for roi in range(len(self.ROIs)):
-                y, x, h, w = self.ROIs[roi]
-                print('roi width %i: %f' % (roi, w))
-                if self.expected_width_min > w or w > self.expected_width_max:
-                    # Remove this ROI
+        # Check if the lidar was updated at a good time
+        check_lidar = (self.last_non_zero_lidar_distance - time.time()) < 0.4
+        removes = []
+        for roi in range(len(self.ROIs)):
+            y, x, h, w = self.ROIs[roi]
+            roi_center = x + (w / 2)
+            # Check for ROI's that are on the own car door
+            if self.expected_center_min > roi_center or roi_center > self.expected_center_max:
+                removes.append(roi)
+            elif check_lidar:
+                # Check for ROI's that are too big or small
+                if (self.expected_width_min > w) or (w > self.expected_width_max):
                     removes.append(roi)
-            self.ROIs = np.delete(self.ROIs, removes, axis=0)
+        self.ROIs = np.delete(self.ROIs, removes, axis=0)
 
     def updateROIColor(self):
         # Check if the lidar distance/velocity measurements are worth looking at
@@ -410,14 +422,26 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
             pass
         # No lidar distance, only velocity useful
         elif (self.lidar_distance == 0) and distance_updated_right:
-            pass
+            if self.lidar_velocity > 0:
+                # Car moving away, don't care
+                colors = (0, 255, 0)
+            else:
+                ratio = min(abs(self.lidar_velocity), self.warning_30km_p_h)
+                colors = (round((1 - ratio) * 255), round(ratio * 255), 0)
         # no lidar velocity, only distance useful
         elif (self.lidar_velocity == 0) and velocity_updated_right:
             ratio = min(abs(((self.lidar_distance * 0.01) / 40.0)), 1)
             colors = (round((1 - ratio) * 255), round(ratio * 255), 0)
         # Use both lidar measurements
         elif distance_updated_right and velocity_updated_right:
-            ratio = min(abs(((self.lidar_distance * 0.01) / 40.0)), 1)
+            if self.lidar_velocity > 0:
+                # Car moving away, don't care
+                colors = (0, 255, 0)
+            else:
+                ratio_distance = min(abs(((self.lidar_distance * 0.01) / 40.0)), 1)
+                ratio_velocity = min(abs(self.lidar_velocity / self.warning_30km_p_h), 1)
+                ratio = (0.25 * ratio_velocity) + (0.75 * ratio_distance)
+                colors = (round((1 - ratio) * 255), round(ratio * 255), 0)
         self.car_detection_color = QColor(*colors)
 
 
