@@ -72,6 +72,8 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         self.sim_image_time_start = 0
         self.sim_lidar_time_start = 0
         self.simulation_runner_thread = None
+        self.simulation_multi_folder = False
+        self.sim_runner_class = None
 
         self.lidar_distance = 0
         self.lidar_velocity = 0
@@ -310,21 +312,21 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         dialog.setFileMode(dialog.Directory)
         self.simulation_folder_path = dialog.getExistingDirectory(options=QtWidgets.QFileDialog.DontUseNativeDialog)
         # Check if folder exists
-        multiple_simulations = False
+        self.simulation_multi_folder = False
         image_csv_file_path = ''
         lidar_csv_file_path = ''
         if os.path.exists(self.simulation_folder_path):
             for file in os.listdir(self.simulation_folder_path):
-                if file == 'sim_runner.txt':
-                    multiple_simulations = True
+                if file == 'sim_runner.sim':
+                    self.simulation_multi_folder = True
                 elif file == 'image_data.csv':
                     image_csv_file_path = os.path.join(self.simulation_folder_path, file)
                 elif file == 'lidar_data.csv':
                     lidar_csv_file_path = os.path.join(self.simulation_folder_path, file)
-        if not(multiple_simulations) and ((image_csv_file_path == '') and (lidar_csv_file_path == '')):
+        if not(self.simulation_multi_folder) and (((image_csv_file_path == '') and (lidar_csv_file_path == ''))):
             self.simulation_folder_path = ''
         else:
-            self.simulationSelectFolder.setText(self.simulation_folder_path)
+            self.simulationFolderSelectedTextEdit.setText(self.simulation_folder_path)
         self.makeSimulationStartAvailable()
 
     def onSimulationCheckboxToggled(self, checked):
@@ -342,11 +344,15 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
 
             self.startLidarReader(dataQueue=self.gui_lidar_data_queue)
             self.startImageViewer(imageQueue=self.gui_camera_queue)
+            if self.simulation_multi_folder:
+                self.sim_runner_class = sim_runner_thread.MultiSimulationRunnerThread
+            else:
+                self.sim_runner_class = sim_runner_thread.SimulationRunnerThread
 
-            self.simulation_runner_thread = sim_runner_thread.SimulationRunnerThread(str_simulationFolderPath=self.simulation_folder_path,
-                                                                                     lidarReaderQueue=self.gui_lidar_data_queue,
-                                                                                     imageViewerQueue=self.gui_camera_queue,
-                                                                                     carDetectionQueue=self.car_detection_camera_queue)
+            self.simulation_runner_thread = self.sim_runner_class(str_simulationFolderPath=self.simulation_folder_path,
+                                                                  lidarReaderQueue=self.gui_lidar_data_queue,
+                                                                  imageViewerQueue=self.gui_camera_queue,
+                                                                  carDetectionQueue=self.car_detection_camera_queue)
             self.simulationRunSimulation.toggled.connect(self.simulation_runner_thread.onRunSimulationToggled)
             self.simulation_runner_thread.start()
         else:

@@ -5,3 +5,4 @@ install_log*
 /virtenv
 Simulation*
 *.pyc
+*.sim

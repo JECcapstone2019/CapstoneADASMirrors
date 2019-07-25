@@ -2,10 +2,10 @@ from PyQt5.QtCore import QThread, pyqtSlot
 import time
 import csv
 import os
-import multiprocessing
 
 from lidar import lidar_control
 from realsense_camera import camera_control
+
 
 class SimulationRunnerThread(QThread):
     def __init__(self, str_simulationFolderPath, lidarReaderQueue, imageViewerQueue, carDetectionQueue=None,
@@ -44,7 +44,7 @@ class SimulationRunnerThread(QThread):
                 sim_lidar_time_start = int(next(csv_reader)[3])
         return sim_lidar_time_start, sim_image_time_start
 
-    def runSimulation(self, lidarStartTime, imageStartTime):
+    def runSimulation(self, lidarStartTime, imageStartTime, simFolderPath):
         self.camera_running = True
         self.lidar_running = True
 
@@ -61,18 +61,18 @@ class SimulationRunnerThread(QThread):
         if self.car_detection:
             self.camera_process = camera_control.CameraMultiProcessSimulationCarDetection(
                 carDetectionQueue=self.car_detection_camera_queue,
-                path_simulationFolder=self.simulation_folder_path,
+                path_simulationFolder=simFolderPath,
                 i_startTime=start_time + image_start_add,
                 multiProc_queue=self.gui_camera_queue)
         else:
             self.camera_process = camera_control.CameraMultiProcessSimulation(
-                path_simulationFolder=self.simulation_folder_path,
+                path_simulationFolder=simFolderPath,
                 i_startTime=start_time + image_start_add,
                 multiProc_queue=self.gui_camera_queue)
 
         ## startup Lidar Simulation
         self.lidar_process = lidar_control.LidarMultiProcessSimulation(
-            path_simulationFolder=self.simulation_folder_path,
+            path_simulationFolder=simFolderPath,
             dataQueue=self.gui_lidar_data_queue,
             i_startTime=start_time + lidar_start_add)
 
@@ -84,17 +84,25 @@ class SimulationRunnerThread(QThread):
             self.camera_running = self.camera_process.is_alive()
             time.sleep(1)
             self.lidar_running = self.lidar_process.is_alive()
+            time.sleep(1)
 
     def run(self):
         sim_lidar_time_start, sim_image_time_start = self.parseSimulationFolder()
         while self.isRunning:
-            self.runSimulation(lidarStartTime=sim_lidar_time_start, imageStartTime=sim_image_time_start)
+            self.runSimulation(lidarStartTime=sim_lidar_time_start, imageStartTime=sim_image_time_start,
+                               simFolderPath=self.simulation_folder_path)
+        self.killProcesses()
+        print("Simulation Thread Exited")
+
+    def killProcesses(self):
         try:
             self.camera_process.kill()
+        except:
+            pass
+        try:
             self.lidar_process.kill()
         except:
             pass
-        print("Simulation Thread Exited")
 
     def stop(self):
         self.camera_process.kill()
@@ -106,3 +114,25 @@ class SimulationRunnerThread(QThread):
     @pyqtSlot(bool)
     def onRunSimulationToggled(self, checked):
         self.isRunning = checked
+
+
+class MultiSimulationRunnerThread(SimulationRunnerThread):
+    def parseSimulationFolder(self):
+        simulation_data = {}
+        for folder in os.listdir(self.simulation_folder_path):
+            if folder != 'sim_runner.sim':
+                path = os.path.join(self.simulation_folder_path, folder)
+                simulation_data[path] = self.getTimeStartDifferenceFromFolder(simulation_folder_path=path)
+        return simulation_data
+
+    def run(self):
+        simulation_data = self.parseSimulationFolder()
+        if len(simulation_data) > 0:
+            while self.isRunning:
+                for simulation_folder, simulation_time_settings in simulation_data.items():
+                    sim_lidar_time_start = simulation_time_settings[0]
+                    sim_image_time_start = simulation_time_settings[1]
+                    self.runSimulation(lidarStartTime=sim_lidar_time_start, imageStartTime=sim_image_time_start,
+                                       simFolderPath=simulation_folder)
+            self.killProcesses()
+        print("Simulation Thread Exited")
