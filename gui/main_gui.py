@@ -66,6 +66,9 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         self.car_detected = False
         self.car_detection_roi = []
         self.car_detection_color = QColor(0, 0, 255)
+        self.sensor_integration_enabled = 0
+
+        self.carDetectionSelection.addItems(["Disable Sensor Integration", "Enable Sensor Integration"])
 
         self.simulation_folder_path = ''
         self.sim_image_time_start = 0
@@ -122,6 +125,7 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
 
         ## Car Detection Functions ##
         self.carDetectionEnableCheckBox.clicked.connect(self.onCarDetectionEnabled)
+        self.carDetectionSelection.currentIndexChanged.connect(self.onSensorIntegrationEnabled)
 
         ## Simulation Functions ##
         self.simulationSelectFolder.pressed.connect(self.onSelectSimulationFolder)
@@ -294,11 +298,15 @@ class runnerWindow(QtWidgets.QMainWindow, main_gui_ui.Ui_MainWindow):
         self.car_detection_roi_thread.stop()
         self.car_detection_process.kill()
 
+    def onSensorIntegrationEnabled(self, i_indSelection):
+        self.sensor_integration_enabled = i_indSelection
+
     @pyqtSlot(tuple)
     def onROIUpdated(self, roiData):
         self.ROIs = roiData[1]
         self.ROI_timestamp = roiData[0]
-        self.checkROIsIntegration()
+        if self.sensor_integration_enabled:
+            self.checkROIsIntegration()
         # self.checkROIsIntegration()
         if len(self.ROIs) > 0:
             self.car_detected = True
