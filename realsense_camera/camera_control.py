@@ -1,4 +1,3 @@
-import pyrealsense2 as rs
 import numpy as np
 from tools import custom_exceptions, time_stamping, class_factory
 import time
@@ -18,16 +17,23 @@ INFRARED = 'INFRARED'
 TYPE = 0
 FORMAT = 1
 
-STREAMS = {}
-STREAMS[DEPTH] = {}
-STREAMS[DEPTH][TYPE] = rs.stream.depth
-STREAMS[DEPTH][FORMAT] = rs.format.z16
-STREAMS[COLOR] = {}
-STREAMS[COLOR][TYPE] = rs.stream.color
-STREAMS[COLOR][FORMAT] = rs.format.bgr8
-STREAMS[INFRARED] = {}
-STREAMS[INFRARED][TYPE] = rs.stream.infrared
-STREAMS[INFRARED][FORMAT] = rs.format.y8
+try:
+    import pyrealsense2 as rs
+    STREAMS = {}
+    STREAMS[DEPTH] = {}
+    STREAMS[DEPTH][TYPE] = rs.stream.depth
+    STREAMS[DEPTH][FORMAT] = rs.format.z16
+    STREAMS[COLOR] = {}
+    STREAMS[COLOR][TYPE] = rs.stream.color
+    STREAMS[COLOR][FORMAT] = rs.format.bgr8
+    STREAMS[INFRARED] = {}
+    STREAMS[INFRARED][TYPE] = rs.stream.infrared
+    STREAMS[INFRARED][FORMAT] = rs.format.y8
+except ImportError:
+    print("pyrealsense2 not installed! Please reinstall from _requirements.txt using\n"
+          "> pip install -r _requirements.txt\n"
+          "Alternatively All functionality other than the camera control can be used")
+
 
 class RealsenseCameraControl:
     def __init__(self, tup_frameSize, i_frameRate, *args, **kwargs):

@@ -17,7 +17,8 @@ class ImageProcessor(multiprocessing.Process):
         self.image_queue = imageQueue
         self.roi_queue = roiQueue
 
-        self.abort = False
+        self.alive = True
+        self.daemon = True
 
         self.cascade_src = ''
         self.car_cascade = None
@@ -26,10 +27,11 @@ class ImageProcessor(multiprocessing.Process):
     def run(self):
         self.cascade_src = os.path.join(os.getcwd(), 'car_detection\\cars.xml')
         self.car_cascade = cv2.CascadeClassifier(self.cascade_src)
-        while(not(self.abort)):
+        while self.alive:
             # Check if data has been requested
             # do your image processing here
             self.runCarDetection()
+        print("Car Detection Process Done")
 
     def runCarDetection(self):
         try:
@@ -48,7 +50,7 @@ class ImageProcessor(multiprocessing.Process):
         self.car_position = []
 
     def kill(self):
-        self.abort = True
+        self.alive = False
 
 class TrackerTesting(ImageProcessor):
     def __init__(self, folderPath='C:\\Users\\e_q\\Documents\\sourcetree\\main_program\\car_detection\\saved_images_2019_6_13-17_49_52\\'):

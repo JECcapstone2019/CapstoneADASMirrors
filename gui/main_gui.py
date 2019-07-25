@@ -3,7 +3,6 @@ import os
 import sys
 import time
 from tools import time_stamping
-import csv
 import numpy as np
 
 from PyQt5 import QtWidgets
