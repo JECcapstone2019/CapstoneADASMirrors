@@ -1,0 +1,46 @@
+
+%
+% Calibration Plots
+%
+
+
+x_width = [833 1920 2555];
+y_width = [127, 57, 47];
+x_hor = [210 680 925];
+y_hor = [236 246 247];
+x_vert = x_hor;
+y_vert = [282 175 170];
+
+
+% PIXEL WIDTH
+
+plot(x_width, y_width)
+
+p1 = polyfit(x_width, y_width, 2); %first order line of best fit - x is range from LiDAR
+x1 = linspace(0,3000);
+y1 = polyval(p1,x1);
+
+p2 = polyfit(x_hor,y_hor, 1);
+x2 = linspace(0,3000);
+y2 = polyval(p2,x2);
+
+p3 = polyfit(x_vert,y_vert, 1);
+x3 = linspace(0,3000);
+y3 = polyval(p3,x3);
+
+
+
+figure('name','Calibration Results')
+title('Calibration Results')
+xlabel('LiDAR Range (cm)')
+ylabel('(Pixel)')
+hold on
+grid minor
+plot(x1,y1,'Linewidth',5)
+plot(x2,y2,'Linewidth',5)
+plot(x3,y3,'Linewidth',5)
+
+set(gcf,'color','w');
+
+
+legend('ROI Width','ROI Horizontal Location', 'ROI Vertical Location')
